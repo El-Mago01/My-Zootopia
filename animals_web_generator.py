@@ -21,17 +21,21 @@ def main():
     animal_repository_string=""
 
     for fox in animals_data:
-        animal_repository_string+='<li class="cards__item">\n'
+        animal_repository_string += f'<li class="cards__item">\n'
+        animal_repository_string += f'<div class="card__title">\n'
         if "name" in fox:
-            animal_repository_string+=f"Name: {fox['name']}<br/>\n"
+            animal_repository_string += f'{fox['name']}</div>\n'
+            animal_repository_string += f'<p class="card__text">\n'
         if "characteristics" in fox:
             if "diet" in fox["characteristics"]:
-                animal_repository_string += f"Diet: {fox["characteristics"]["diet"]}<br/>\n"
+                animal_repository_string += f"<strong>Diet:</strong> {fox["characteristics"]["diet"]}<br/>\n"
         if "locations" in fox:
-            animal_repository_string += f"Location: {fox["locations"][0]}<br/>\n"
+            animal_repository_string += f"<strong>Location:</strong> {fox["locations"][0]}<br/>\n"
         if "characteristics" in fox:
             if "type" in fox["characteristics"]:
-                animal_repository_string += f"Type: {fox["characteristics"]["type"]}<br/>\n"
+                animal_repository_string += f"<strong>Type:</strong> {fox["characteristics"]["type"]}<br/>\n"
+                animal_repository_string += '</li>\n'
+        animal_repository_string+='</p>\n'
         animal_repository_string+='</li>\n'
     # The replacement below is necessary to avoid a mojibake
     animal_repository_string=animal_repository_string.replace("â€™","\'")
