@@ -1,0 +1,36 @@
+Hello Martin
+
+I hope you're doing well.
+
+Nice-to-have improvements (Optional):
+
+x In frequency.py, punctuation removal is handled with many replace calls in clean_text
+instead of using str.maketrans and str.translate, which is one of the expected core takeaways for this task.
+
+o In frequency.py, top_n_words returns a list and uses a separate cute_print function to display the result,
+but the task specifically says top_n_words should print the top n words along with their frequency.
+I understood the comment and it is correct in principle as indeed the task specifically asked for that.
+I personally prefer to print all together in a function. This avoid that top_n_words has (at least) 2 functions:
+- find the top n words
+- print those top n words
+To me, it makes more sense to have the output done all from 1 function cute_print
+If later all should be written to file, I only have to go to one location that has this one specific action.
+
+x In frequency.py, top_n_words does not define alphabetical ordering for ties, so words with the same
+frequency may not appear in a deterministic order.
+
+x In frequency.py, converting words to lowercase would be clearer if done inside get_words or
+words_frequency rather than later in main, so the normalization stays closer to where the words
+are processed.
+
+o In frequency.py, using deepcopy for the frequency dictionary is unnecessary overhead here;
+sorting the dictionary items once would make the solution simpler and easier to follow.
+My comment, during the training we learn that you should not change the mutable variables like lists or dictionaries.
+It is better to create a copy to avoid corruption of the input argument of the function.
+Or did I misunderstood something here?
+
+I hope this helps and clarifies.
+
+Best regards
+
+Shahriar F.

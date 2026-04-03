@@ -22,20 +22,21 @@ def serialize_animal(fox):
         animal_repository_str += f'{fox['name']}</div>\n'
         animal_repository_str += f'<div class="card__text">\n'
         animal_repository_str += f'<ul>\n'
-    if "taxonomy" in fox:
-        if "scientific_name" in fox["taxonomy"]:
-            animal_repository_str += f"<li><strong>Scientific name:</strong> {fox["taxonomy"]["scientific_name"]}</li>\n"
-    if "characteristics" in fox:
-        if "diet" in fox["characteristics"]:
-            animal_repository_str += f"<li><strong>Diet:</strong> {fox["characteristics"]["diet"]}</li>\n"
-    if "locations" in fox:
-        animal_repository_str += f"<li><strong>Location:</strong> {fox["locations"][0]}</li>\n"
-    if "characteristics" in fox:
-        if "type" in fox["characteristics"]:
-            animal_repository_str += f"<li><strong>Type:</strong> {fox["characteristics"]["type"]}</li>\n"
-            animal_repository_str += '</ul>\n'
-    #animal_repository_str+='</p>\n'
-    animal_repository_str+='</li>\n'
+        if "taxonomy" in fox:
+            if "scientific_name" in fox["taxonomy"]:
+                animal_repository_str += f"<li><strong>Scientific name:</strong> {fox["taxonomy"]["scientific_name"]}</li>\n"
+            if "characteristics" in fox:
+                if "diet" in fox["characteristics"]:
+                    animal_repository_str += f"<li><strong>Diet:</strong> {fox["characteristics"]["diet"]}</li>\n"
+            if "locations" in fox:
+                animal_repository_str += f"<li><strong>Location:</strong> {fox["locations"][0]}</li>\n"
+            if "characteristics" in fox:
+                if "type" in fox["characteristics"]:
+                    animal_repository_str += f"<li><strong>Type:</strong> {fox["characteristics"]["type"]}</li>\n"
+        #animal_repository_str+='</p>\n'
+        animal_repository_str+='</ul>\n'
+    else:
+        animal_repository_str="ERROR: fox without a name"
     return animal_repository_str
 
 
