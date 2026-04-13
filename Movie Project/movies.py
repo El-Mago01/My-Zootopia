@@ -1,6 +1,13 @@
 import os
 import statistics
 import random
+import sys
+import matplotlib
+import numpy as np
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+from thefuzz import fuzz
+
 
 # Algorithm:
 # =============================
@@ -27,20 +34,27 @@ def is_float(string:str) -> bool:
 
 def show_menu():
     menu_string = ("** ** ** ** ** My Movies Database ** ** ** ** ** \n\n"
-                   "Menu: \n1. List movies\n2. Add movie\n3. Delete movie\n"
-                   "4. Update movie\n5. Stats\n6. Random movie\n7. Search movie\n"
-                   "8. Movies sorted by rating\n\n"
+                   "Menu: \n"
+                   "1. List movies\n"
+                   "2. Add movie\n"
+                   "3. Delete movie\n"
+                   "4. Update movie\n"
+                   "5. Stats\n"
+                   "6. Random movie\n"
+                   "7. Search movie\n"
+                   "8. Movies sorted by rating\n"
+                   "9. Create rating histogram\n"
                    )
     correct_input_provided = False
     while correct_input_provided is False:
         clear_screen() # clears the screen
         print(menu_string)
-        input_selection=input("Enter choice(1 - 8):")
-        if input_selection.isnumeric() and (1 <= int(input_selection) <= 8):
+        input_selection=input("Enter choice(1 - 9):")
+        if input_selection.isnumeric() and (1 <= int(input_selection) <= 9):
             correct_input_provided = True
             input_selection=int(input_selection)
         if correct_input_provided == False:
-            input("Input should be between 1-8. Press enter to continue")
+            input("Input should be between 1-9. Press enter to continue")
     return input_selection
 
 def list_movies(movies:dict):
@@ -122,20 +136,51 @@ def select_random_movie(movies:dict) -> tuple:
     print(f"Your movie for tonight: {random_movie}, it's rated {movies[random_movie]}")
     return random_movie, movies[random_movie]
 
-def search_movies(movies:dict, search_string, match_type:int=0) -> tuple:
+def pretty_print(found_movies:dict,search_string):
+    max_distance = 0
+    for movie in found_movies:
+        if max_distance < found_movies[movie][1]:
+            max_distance = found_movies[movie][1]
+    if max_distance > 95:
+        for movie in found_movies:
+            if found_movies[movie][1] == max_distance:
+                print(f"{movie}, {found_movies[movie][0]}")
+        if len(found_movies) > 1:
+            print(f"These movies might also fit your search:")
+            for movie in found_movies:
+                if found_movies[movie][1] < max_distance:
+                    print(f"{movie}, with rating {found_movies[movie][0]}?")
+    elif len(found_movies) > 0:
+        print(f"The movie {search_string} does not exist. Did you mean:")
+        for movie in found_movies:
+            print(f"{movie}, with rating {found_movies[movie][0]}?")
+    else:
+        print("Movie not found")
+
+
+def editing_distance(search_string:str, movie_title:str) ->int:
+    distance=fuzz.ratio(search_string,movie_title)
+    # print (distance)
+    return distance
+
+def search_movies(movies:dict, search_string, match_type:int=0) -> dict:
     # match_type 0 => not exact & case-insensitive
     # match_type 1 => matching characters, but case-insensitive
     # match_type 2 => exact match, and case-sensitive
-    if match_type >2 or match_type<0:
+    # match_type 3 => fuzzy matching
+    e_distance=0 #the fuzzy matching distance is initially set to 0, nothing in common with search string
+    if match_type >3 or match_type<0:
         print(f"Coding error, match_type var out of bound. Value {match_type}")
         return "Coding Error", search_string, 0
-    movies_found={}
     movies_names = movies.keys()
+    movies_found ={}
     for movie in movies_names:
         if ((search_string.lower() in movie.lower() and match_type == 0) or
                 (search_string.lower() == movie.lower() and match_type == 1) or
-                (search_string == movie and match_type == 2)):
-            movies_found[movie]=movies[movie]
+                (search_string == movie and match_type == 2) or
+                (editing_distance(search_string,movie) > 55 and match_type == 3)):
+            e_distance=editing_distance(search_string, movie)
+            movies_found[movie]=(movies[movie],e_distance)
     return movies_found
 
 def sort_by_rating(movies:dict) -> list:
@@ -145,6 +190,17 @@ def sort_by_rating(movies:dict) -> list:
     for movie,rating in sorted_list:
         print(f"{movie}: {rating}")
     return sorted_list
+
+def create_rating_histogram(movies:dict):
+    a=list(movies.values())
+    fig=plt.hist(a)
+    plt.title("Histogram of movie ratings")
+    plt.xlabel("value")
+    plt.ylabel("frequency")
+    plt.show
+    plt.savefig("histogram.png")
+    sys.stdout.flush()
+    print("File histogram.png is created")
 
 def main():
     # Dictionary to store the movies and the rating
@@ -183,12 +239,17 @@ def main():
             select_random_movie(movies)
         if menu_selection == 7:
             search_string = input("\nEnter part of movie name:")
-            found_movies = search_movies(movies,search_string, 0)
-            for movie in found_movies:
-                print (f"{movie}, {found_movies[movie]}")
+            found_movies = search_movies(movies, search_string, 3)
+            # if len(found_movies) == 0:
+            #     print("film not found ")
+            pretty_print(found_movies,search_string)
+
 
         if menu_selection == 8:
             sort_by_rating(movies)
+
+        if menu_selection == 9:
+            create_rating_histogram(movies)
         input("\nPress enter to continue")
 
 if __name__ == "__main__":
