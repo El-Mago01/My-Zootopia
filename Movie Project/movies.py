@@ -8,7 +8,6 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from thefuzz import fuzz
 
-
 # Algorithm:
 # =============================
 # step 10: show the menu numbered from 1-8 and ask for input
@@ -18,6 +17,7 @@ from thefuzz import fuzz
 # step 50: ask for an enter to continue
 # step 60: after enter is provided, start from 10 again.
 
+# class bcolors used for color setting of output text
 class bcolors:
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
@@ -29,14 +29,17 @@ class bcolors:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 
+# Constant used for the fuzzy search sensitivity. Adjust to higher level to focus the search quality
 FUZZY_SENS = 65
 
+# Clean the screen before showing the menu. Does not seem to work well though on this terminal
 def clear_screen():
     if os.name=='nt':
         os.system('cls')
     else:
         os.system('clear')
 
+#Check if the content of the string is a float
 def is_float(string:str) -> bool:
     try:
         float(string)
@@ -44,7 +47,7 @@ def is_float(string:str) -> bool:
         return False
     return True
 
-
+# Show the menu based on the menu_string and ask for input. Only allow valid input.
 def show_menu():
     menu_string = ("** ** ** ** ** My Movies Database ** ** ** ** ** \n\n"
                    "Menu: \n"
@@ -62,7 +65,7 @@ def show_menu():
     while correct_input_provided is False:
         clear_screen() # clears the screen
         print(bcolors.OKBLUE + menu_string)
-        input_selection=input(bcolors.OKBLUE + "Enter choice(1 - 9):")
+        input_selection=input(bcolors.OKBLUE + "Enter choice(1 - 9): ")
         if input_selection.isnumeric() and (1 <= int(input_selection) <= 9):
             correct_input_provided = True
             input_selection=int(input_selection)
@@ -70,11 +73,14 @@ def show_menu():
             input(bcolors.FAIL + "Input should be between 1-9. Press enter to continue")
     return input_selection
 
+# list the available movies in the current dict
 def list_movies(movies:dict):
     print(bcolors.ENDC + f"{len(movies)} movies in total")
     for movie in movies:
         print(f"{movie}: {movies[movie]}")
 
+# The current movie list contains a name (string) and a rating (a float)
+# This function ensures valid user input for name and rating
 def get_correct_movie_input() -> tuple:
     correct_input_provided = False
     while correct_input_provided is False:
@@ -89,6 +95,7 @@ def get_correct_movie_input() -> tuple:
             input(bcolors.FAIL + "Input provide valid input. Press enter to continue!" + bcolors.ENDC)
     return movie, rating, correct_input_provided
 
+# Adds a movie to the dict. Returns a boolean indicating success or not
 def add_movie(movies:dict) -> bool:
     movie, rating, correct_input_provided=get_correct_movie_input()
     if not correct_input_provided: # if correct input was provided (this should always be True
@@ -103,6 +110,7 @@ def add_movie(movies:dict) -> bool:
     print(f"Movie {movie} successfully added")
     return True
 
+# deletes a movie from the dict. Returns a boolean indicating success or not
 def delete_movie(movies:dict, movie_to_delete:str) -> bool:
     try:
         movies.pop(movie_to_delete)
@@ -111,6 +119,7 @@ def delete_movie(movies:dict, movie_to_delete:str) -> bool:
         return False
     return True
 
+# updates a movie from the dict. Returns the updated movie name or empty string if it failed
 def update_movie(movies:dict) -> str:
     movie_to_update, new_rating, correct_input_provided = get_correct_movie_input()
     movies_found=search_movies(movies,movie_to_update,2)
@@ -120,6 +129,8 @@ def update_movie(movies:dict) -> str:
     else:
         return ""
 
+# gather the statistics from the films and ratings in the dict.
+# best movie, worst movie, and the related ratings as tuple
 def max_min_rating_movie(movies: dict) -> tuple:
     min_rating = min(movies.values())
     max_rating = max(movies.values())
@@ -136,6 +147,7 @@ def max_min_rating_movie(movies: dict) -> tuple:
         worst_movie = "Not found + "
     return best_movie[0:-3],max_rating, worst_movie[0:-3], min_rating # slicing to remove the + at the end
 
+# prints the statistics from the movie dictionary. No return value
 def show_stats(movies:dict):
     print(bcolors.ENDC)
     average_rating=sum(movies.values())/len(movies)
@@ -146,12 +158,14 @@ def show_stats(movies:dict):
     print(f"Best movie: {best}, {max_rat}")
     print(f"Worst movie: {worst}, {min_rat}")
 
+# selects a random movie and returns a tuple including the movie title and it's rating
 def select_random_movie(movies:dict) -> tuple:
     #Your movie for tonight: Star Wars: Episode V, it's rated 8.7
     random_movie=random.choice(list(movies.keys()))
     print(bcolors.ENDC + f"Your movie for tonight: {random_movie}, it's rated {movies[random_movie]}")
     return random_movie, movies[random_movie]
 
+# pretty prints the output of the search. No return value
 def pretty_print(found_movies:dict,search_string):
     max_distance = 0
     for movie in found_movies:
@@ -174,20 +188,24 @@ def pretty_print(found_movies:dict,search_string):
     else:
         print(bcolors.FAIL + "Movie not found" + bcolors.ENDC)
 
-
+# This function calculates the distance between the search_string and movie title and returns the "distance"
+# between these 2 strings. The distance is calculated using fuzzy matching, using the "thefuzz" library
 def editing_distance(search_string:str, movie_title:str) ->int:
     distance=fuzz.ratio(search_string,movie_title)
     # print (distance)
     return distance
-
+# searches for movies in the dict using the search_string and 4 variants expressed by match_type (int)
+#   match_type 0 => not exact & case-insensitive
+#   match_type 1 => matching characters, but case-insensitive
+#   match_type 2 => exact match, and case-sensitive
+#   match_type 3 => fuzzy matching
 def search_movies(movies:dict, search_string, match_type:int=0) -> dict:
-    # match_type 0 => not exact & case-insensitive
-    # match_type 1 => matching characters, but case-insensitive
-    # match_type 2 => exact match, and case-sensitive
-    # match_type 3 => fuzzy matching
-    e_distance=0 #the fuzzy matching distance is initially set to 0, nothing in common with search string
-    movies_found ={}
-    if match_type >3 or match_type<0:
+    e_distance=0 # the fuzzy matching distance is initially set to 0,
+                 # i.e. there is nothing in common with search string
+
+    movies_found ={} # create an empty dict to be used by all the found movies
+
+    if match_type >3 or match_type<0: # needs to be updated later to ensure proper error handling.
         print(bcolors.FAIL + "Coding error, match_type var out of bound. Value {match_type}" + bcolors.ENDC)
         movies_found={'Fault message': 'Coding Error'}
         return movies_found
@@ -201,13 +219,28 @@ def search_movies(movies:dict, search_string, match_type:int=0) -> dict:
             movies_found[movie]=(movies[movie],e_distance)
     return movies_found
 
-def sort_by_rating(movies:dict) -> list:
+# converts the dict to a list including the rating and movie title
+# orders the list using the "sorted" function with one-liner function for key
+# the anonymous one-liner function key=lambda tup: tup[1] ensures the sorting on rating
+# the function returns the sorted list ascending or descending, based upon input parameter 'direction'
+def sort_by_rating(movies:dict, direction:str='descending') -> list:
     movie_list=movies.items()
-    sorted_list=sorted(movie_list,key=lambda tup: tup[1], reverse = True) #sorts the list of tuples based on the rating (tup[1])
+    if direction == 'descending':
+        descending=True
+    else:
+        descending=False
+    sorted_list = sorted(movie_list, key=lambda tup: tup[1],
+                         reverse=descending)  # sorts the list of tuples based on the rating (tup[1])
     print()
     for movie,rating in sorted_list:
         print(bcolors.ENDC + f"{movie}: {rating}")
     return sorted_list
+
+# creates a histogram of the ratings in the dict
+# # uses the following imports:
+# import numpy as np
+# matplotlib.use('Agg')
+# import matplotlib.pyplot as plt
 
 def create_rating_histogram(movies:dict):
     a=list(movies.values())
@@ -220,6 +253,8 @@ def create_rating_histogram(movies:dict):
     sys.stdout.flush()
     print(bcolors.ENDC + "File histogram.png is created")
 
+# In main() the movies initial library is constructed and the menu is displayed.
+# based upon the selected menu-item by user, the right function is called.
 def main():
     # Dictionary to store the movies and the rating
     movies = {
@@ -261,8 +296,6 @@ def main():
             # if len(found_movies) == 0:
             #     print("film not found ")
             pretty_print(found_movies,search_string)
-
-
         if menu_selection == 8:
             sort_by_rating(movies)
 
