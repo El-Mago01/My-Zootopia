@@ -1,6 +1,8 @@
 import flights_data
 from datetime import datetime
 import sqlalchemy
+# from pandas import DataFrame as df
+import pandas as pd
 
 IATA_LENGTH = 3
 
@@ -13,7 +15,6 @@ def delayed_flights_by_airline():
     airline_input = input("Enter airline name: ")
     results = flights_data.get_delayed_flights_by_airline(airline_input)
     print_results(results)
-
 
 def delayed_flights_by_airport():
     """
@@ -29,7 +30,6 @@ def delayed_flights_by_airport():
             valid = True
     results = flights_data.get_delayed_flights_by_airport(airport_input)
     print_results(results)
-
 
 def flight_by_id():
     """
@@ -75,6 +75,7 @@ def print_results(results):
     Each object *has* to contain the columns:
     FLIGHT_ID, ORIGIN_AIRPORT, DESTINATION_AIRPORT, AIRLINE, and DELAY.
     """
+    data_export = []
     print(f"Got {len(results)} results.")
     for result in results:
         # turn result into dictionary
@@ -91,11 +92,22 @@ def print_results(results):
             return
 
         # Different prints for delayed and non-delayed flights
+        # Prepare data for storage  to a CSV file
+
         if delay and delay > 0:
             print(f"{result['ID']}. {origin} -> {dest} by {airline}, Delay: {delay} Minutes")
+            data_export.append({'id': result['ID'], 'origin': dest, 'airline': airline, 'delay': delay + 'Minutes' })
         else:
             print(f"{result['ID']}. {origin} -> {dest} by {airline}")
+            data_export.append({'id' : result['ID'], 'origin' : origin, 'dest':dest, 'airline' : airline})
 
+    write_to_file=input("Would you like to export this data to a CSV file? (y/n)")
+
+    if write_to_file.lower() == "y" or write_to_file.lower() == "yes":
+        print(data_export)
+        df = pd.DataFrame(data_export)
+        f_name = input("Filename: ")
+        df.to_csv(f_name, index=False)
 
 def show_menu_and_get_input():
     """
