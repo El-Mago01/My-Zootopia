@@ -1,10 +1,82 @@
 from sqlalchemy import create_engine, text
 
-QUERY_FLIGHT_BY_ID = "SELECT flights.*, airlines.airline, flights.ID as FLIGHT_ID, flights.DEPARTURE_DELAY as DELAY FROM flights JOIN airlines ON flights.airline = airlines.id WHERE flights.ID = :id;"
-QUERY_FLIGHTS_BY_DATE = "SELECT flights.*, airlines.airline, flights.ID as FLIGHT_ID, flights.DEPARTURE_DELAY as DELAY FROM flights JOIN airlines ON flights.airline = airlines.id WHERE flights.DAY = :day AND flights.MONTH= :month AND flights.YEAR = :year;"
-QUERY_DELAYED_FLIGHTS_BY_AIRLINE = "SELECT flights.*, airlines.airline, flights.ID as FLIGHT_ID, flights.DEPARTURE_DELAY as DELAY FROM flights JOIN airlines ON flights.airline = airlines.id WHERE flights.DEPARTURE_DELAY >= 20 AND airlines.airline= :airline AND flights.DEPARTURE_DELAY IS NOT NULL;"
-QUERY_DELAYED_FLIGHTS_BY_AIRPORT = "SELECT flights.*, airlines.airline, flights.ID as FLIGHT_ID, flights.DEPARTURE_DELAY as DELAY FROM flights JOIN airlines ON flights.airline = airlines.id JOIN airports ON flights.ORIGIN_AIRPORT = airports.IATA_CODE WHERE flights.DEPARTURE_DELAY >= 20 AND airports.IATA_CODE= :airport;"
+QUERY_FLIGHT_BY_ID = ("""
+SELECT flights.*, airlines.airline, flights.ID as FLIGHT_ID, flights.DEPARTURE_DELAY as DELAY 
+FROM flights JOIN airlines ON flights.airline = airlines.id 
+WHERE flights.ID = :id
+;
+""")
+QUERY_FLIGHTS_BY_DATE = ("""
+SELECT flights.*, airlines.airline, flights.ID as FLIGHT_ID, flights.DEPARTURE_DELAY as DELAY 
+FROM flights JOIN airlines ON flights.airline = airlines.id 
+WHERE flights.DAY = :day 
+  AND flights.MONTH= :month 
+  AND flights.YEAR = :year
+;
+""")
+QUERY_DELAYED_FLIGHTS_BY_AIRLINE = ("""
+SELECT flights.*, airlines.airline, flights.ID as FLIGHT_ID, flights.DEPARTURE_DELAY as DELAY 
+FROM flights JOIN airlines ON flights.airline = airlines.id 
+WHERE flights.DEPARTURE_DELAY >= 20 
+  AND airlines.airline= :airline 
+  AND flights.DEPARTURE_DELAY IS NOT NULL
+  AND flights.DEPARTURE_DELAY  <> ''
 
+;
+""")
+QUERY_DELAYED_FLIGHTS_BY_AIRPORT = ("""
+SELECT flights.*, airlines.airline, flights.ID as FLIGHT_ID, flights.DEPARTURE_DELAY as DELAY 
+FROM flights JOIN airlines ON flights.airline = airlines.id 
+             JOIN airports ON flights.ORIGIN_AIRPORT = airports.IATA_CODE 
+WHERE flights.DEPARTURE_DELAY >= 20 
+  AND  flights.DEPARTURE_DELAY  <> ''
+  AND airports.IATA_CODE= :airport
+;
+""")
+QUERY_ALL_AIRLINES = ("""
+SELECT airlines.airline AS airline FROM airlines
+;
+""")
+QUERY_NR_OF_DELAYED_FLIGHTS_BY_AIRLINE = ("""
+SELECT COUNT(*) AS NR_of_delayed_flights 
+FROM flights JOIN airlines ON flights.airline = airlines.id 
+WHERE flights.DEPARTURE_DELAY >= 20 
+  AND airlines.airline= :airline 
+  AND flights.DEPARTURE_DELAY IS NOT NULL 
+  AND  flights.DEPARTURE_DELAY  <> ''
+;
+""")
+QUERY_NR_OF_FLIGHTS_BY_AIRLINE = ("""
+SELECT COUNT(*) AS NR_of_flights 
+FROM flights JOIN airlines ON flights.airline = airlines.id 
+WHERE airlines.airline= :airline 
+  AND flights.DEPARTURE_DELAY IS NOT NULL
+  AND  flights.DEPARTURE_DELAY  <> ''
+;
+""")
+
+QUERY_NR_OF_FLIGHTS_PER_HOUR_BY_DAY=("""
+SELECT 
+SUBSTR(departure_time, 1, 2) AS hour,
+ COUNT(*) AS nr_of_flights
+FROM flights
+WHERE departure_time IS NOT NULL
+  AND departure_time <> ''
+GROUP BY SUBSTR(departure_time, 1, 2)
+ORDER BY hour;
+""")
+QUERY_NR_OF_DELAYED_FLIGHTS_PER_HOUR_BY_DAY=("""
+SELECT 
+SUBSTR(departure_time, 1, 2) AS hour,
+ COUNT(*) AS nr_of_flights
+FROM flights
+WHERE departure_time IS NOT NULL
+  AND departure_time <> ''
+  AND departure_delay >20
+GROUP BY SUBSTR(departure_time, 1, 2)
+ORDER BY hour;
+
+""")
 # Define the database URL
 DATABASE_URL = "sqlite:///data/flights.sqlite3"
 
@@ -49,3 +121,23 @@ def get_delayed_flights_by_airline(airline):
 def get_delayed_flights_by_airport(airport):
     params = {'airport': airport}
     return execute_query(QUERY_DELAYED_FLIGHTS_BY_AIRPORT, params)
+
+def get_airlines()->list:
+    params = {'airline': ""}
+    return execute_query(QUERY_ALL_AIRLINES,params)
+
+def get_nr_of_delayed_flights_by_airline(airline):
+    params = {'airline': airline}
+    return execute_query(QUERY_NR_OF_DELAYED_FLIGHTS_BY_AIRLINE, params)
+
+def get_nr_of_flights_by_airline(airline):
+    params = {'airline': airline}
+    return execute_query(QUERY_NR_OF_FLIGHTS_BY_AIRLINE, params)
+
+def get_number_of_flights_per_hour_of_day():
+    params = {'day': ""}
+    return execute_query(QUERY_NR_OF_FLIGHTS_PER_HOUR_BY_DAY, params)
+
+def get_delayed_flights_per_hour_of_day():
+    params = {'day': ""}
+    return execute_query(QUERY_NR_OF_DELAYED_FLIGHTS_PER_HOUR_BY_DAY, params)
