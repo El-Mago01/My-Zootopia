@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?><sqlb_project><db path="flights.sqlite3" readonly="0" foreign_keys="0" case_sensitive_like="0" temp_store="0" wal_autocheckpoint="1000" synchronous="2"/><attached/><window><main_tabs open="structure browser pragmas query" current="3"/></window><tab_structure><column_width id="0" width="300"/><column_width id="1" width="0"/><column_width id="2" width="100"/><column_width id="3" width="5263"/><column_width id="4" width="0"/><expanded_item id="0" parent="1"/><expanded_item id="1" parent="1"/><expanded_item id="2" parent="1"/><expanded_item id="3" parent="1"/></tab_structure><tab_browse><table title="airlines" custom_title="0" dock_id="2" table="4,8:mainairlines"/><dock_state state="000000ff00000000fd0000000100000002000005bb00000386fc0100000002fb000000160064006f0063006b00420072006f00770073006500310100000000000005bb0000000000000000fb000000160064006f0063006b00420072006f00770073006500320100000000ffffffff0000011800ffffff000002580000000000000004000000040000000800000008fc00000000"/><default_encoding codec=""/><browse_table_settings/></tab_browse><tab_sql><sql name="SQL 1*">--- Query 1
+
+SELECT 	ID AS id, 
+		YEAR AS year, 
+		MONTH AS month, 
+		DAY AS day, 
+		ORIGIN_AIRPORT AS origin, 
+		DESTINATION_AIRPORT AS destination, 
+		ARRIVAL_DELAY AS arrival_delay, 
+		DEPARTURE_DELAY AS departure_delay 
+FROM flights
+WHERE flights.ID = 280;
+
+--- Query 2
+SELECT 	flights.ID AS id, 
+		YEAR AS year, 
+		MONTH AS month, 
+		DAY AS day, 
+		ORIGIN_AIRPORT AS origin, 
+		DESTINATION_AIRPORT AS destination, 
+		airlines.AIRLINE AS airline_name, 
+		ARRIVAL_DELAY AS arrival_delay, 
+		DEPARTURE_DELAY AS departure_delay 
+FROM flights
+JOIN airlines
+ON airlines.ID=flights.AIRLINE
+WHERE flights.ID = 280;
+
+--- Query 3
+
+SELECT ID, AIRLINE, CANCELLED, CANCELLATION_REASON FROM flights 
+WHERE CANCELLED = 1;
+
+--- Query 4
+SELECT DAY_OF_WEEK AS day_of_week, COUNT(*) AS total_flights FROM flights
+GROUP BY DAY_OF_WEEK
+ORDER BY DAY_OF_WEEK;
+
+--- Query 5
+
+SELECT  ID AS id,
+		FLIGHT_NUMBER AS flight_number,
+		ORIGIN_AIRPORT AS origin,
+		DEPARTURE_DELAY AS delay 
+FROM flights
+WHERE DAY=1 AND MONTH=1 AND YEAR=2015
+ORDER BY DEPARTURE_DELAY DESC
+LIMIT 5
+;
+--- Query 6
+SELECT ORIGIN_AIRPORT AS airport, 
+       COUNT(*) AS total_departures 
+FROM flights
+GROUP BY ORIGIN_AIRPORT
+ORDER BY total_departures DESC
+LIMIT 10;
+
+--- Query 7
+SELECT ID, ORIGIN_AIRPORT, DESTINATION_AIRPORT, DEPARTURE_DELAY FROM flights
+WHERE DEPARTURE_DELAY &gt; 1440
+ORDER BY DEPARTURE_DELAY DESC;
+
+--- Query 8
+SELECT DISTINCT airlines.AIRLINE 
+FROM flights
+JOIN airlines ON flights.AIRLINE = airlines.ID
+WHERE ORIGIN_AIRPORT = 'JFK';
+
+--- Query 9
+
+SELECT airlines.AIRLINE, avg(DEPARTURE_DELAY) AS average_delay
+FROM flights
+JOIN airlines ON flights.AIRLINE = airlines.ID
+GROUP BY airlines.AIRLINE
+ORDER BY average_delay DESC
+;
+
+--- Query 10
+SELECT airlines.AIRLINE, avg(DEPARTURE_DELAY) AS average_delay
+FROM flights
+JOIN airlines ON flights.AIRLINE = airlines.ID
+WHERE DEPARTURE_DELAY &gt;= 0
+GROUP BY airlines.AIRLINE
+ORDER BY average_delay DESC;
+
+--- Query 11
+SELECT 	airports.AIRPORT AS airport, 
+		count(*) AS num_of_flights, 
+		avg(flights.DEPARTURE_DELAY) AS average_delay
+FROM flights
+JOIN airports ON flights.ORIGIN_AIRPORT = airports.IATA_CODE
+WHERE flights.DEPARTURE_DELAY &gt;= 0
+GROUP BY airports.AIRPORT
+HAVING num_of_flights&gt;5000
+ORDER BY average_delay DESC
+;
+</sql><current_tab id="0"/></tab_sql></sqlb_project>
