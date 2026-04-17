@@ -1,5 +1,4 @@
 from importlib.metadata import pass_none
-
 import flights_data as fd
 from datetime import datetime
 import sqlalchemy
@@ -68,15 +67,43 @@ def percentage_of_delayed_flights_per_hour_of_the_day():
     print(hours_list)
 
     fig = pfd.plot_percentage_of_delayed_flight_per_hour(hours_list, percentage_of_delayed_flights_per_hour)
-    write_to_file = input("Would you like to export this data to a .png file? (y/n)")
 
+    write_to_file = input("Would you like to export this data to a .png file? (y/n)")
     if write_to_file.lower() == "y" or write_to_file.lower() == "yes":
         f_name = input("Filename: ")
         fig.savefig(f_name + ".png")
 
 
+def heatmap_routes_of_delayed_flights():
+# Algorithm:
+# 1. get a list of the all the iata codes
+# 2. per item of the iata list:
+#    get per orign route the frequency of departure for delayed and non-canceled flights
+#    to all  possible destinations
+# 3. compile 2-D array:
+#    from origin x the nr of delayed flights to destination y
+# 4. get a list of the origin iata codes
+# 5. get a list of the destination iata codes
+# 6. plot this list as heat map
+# 7. ask if the user wants to save this graph
 
+#   The following code is based upon the use of panda Data Frames, see also the following
+#   Reference material:
+#   https://www.geeksforgeeks.org/python/creating-a-pandas-dataframe-using-list-of-tuples/
+#   https://www.youtube.com/watch?v=cllz3subduA
+    iata_codes=fd.get_all_iata_codes()
+    print(iata_codes)
+    flight_map=fd.get_delayed_flights_by_airport()
+    df=pd.DataFrame(flight_map, columns=["Origin", "Destination", "Percentage"])
+    print(df)
+    data=df.pivot(index="Origin", columns="Destination", values="Percentage")
+    print(data)
+    fig=pfd.plot_heatmap_routes(data)
 
+    write_to_file = input("Would you like to export this data to a .png file? (y/n)")
+    if write_to_file.lower() == "y" or write_to_file.lower() == "yes":
+        f_name = input("Filename: ")
+        fig.savefig(f_name + ".png")
 
 def delayed_flights_by_airline():
     """
@@ -120,7 +147,6 @@ def flight_by_id():
     results = fd.get_flight_by_id(id_input)
     print_results(results)
 
-
 def flights_by_date():
     """
     Asks the user for date input (and loops until it's valid),
@@ -138,7 +164,6 @@ def flights_by_date():
             valid = True
     results = fd.get_flights_by_date(date.day, date.month, date.year)
     print_results(results)
-
 
 def print_results(results):
     """
@@ -210,6 +235,7 @@ FUNCTIONS = { 1: (flight_by_id, "Show flight by ID"),
               4: (delayed_flights_by_airport, "Delayed flights by origin airport"),
               5: (percentage_of_delayed_flights_per_airline, "Graph of % of delayed flights per airline"),
               6: (percentage_of_delayed_flights_per_hour_of_the_day, "Graph of % of delayed flights per hour"),
+              7: (heatmap_routes_of_delayed_flights, "heatmap of the flight routes"),
               0: (quit, "Exit")
              }
 

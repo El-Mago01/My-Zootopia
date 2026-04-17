@@ -77,6 +77,24 @@ GROUP BY SUBSTR(departure_time, 1, 2)
 ORDER BY hour;
 
 """)
+
+QUERY_ALL_IATA_CODES=("""
+SELECT IATA_CODE FROM airports
+;
+"""
+)
+
+QUERY_DELAYED_PERCENTAGE_OF_FLIGHTS_BY_ORIG_AIRPORT_TO_DEST=("""
+SELECT
+    ORIGIN_AIRPORT,
+    DESTINATION_AIRPORT,
+    AVG(CASE WHEN DEPARTURE_DELAY > 20 THEN 1.0 ELSE 0.0 END) * 100 AS delay_percentage
+FROM flights
+GROUP BY ORIGIN_AIRPORT, DESTINATION_AIRPORT
+HAVING COUNT(*) >= 20
+ORDER BY ORIGIN_AIRPORT ASC;
+"""
+)
 # Define the database URL
 DATABASE_URL = "sqlite:///data/flights.sqlite3"
 
@@ -141,3 +159,12 @@ def get_number_of_flights_per_hour_of_day():
 def get_delayed_flights_per_hour_of_day():
     params = {'day': ""}
     return execute_query(QUERY_NR_OF_DELAYED_FLIGHTS_PER_HOUR_BY_DAY, params)
+
+def get_all_iata_codes():
+    params = {'airline': ""}
+    return execute_query(QUERY_ALL_IATA_CODES, params)
+
+def get_delayed_flights_by_airport():
+    params = {'orig_airport': "" }
+    return execute_query(QUERY_DELAYED_PERCENTAGE_OF_FLIGHTS_BY_ORIG_AIRPORT_TO_DEST, params)
+
