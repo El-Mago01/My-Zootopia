@@ -11,9 +11,11 @@ with engine.connect() as connection:
     connection.execute(text("""
         CREATE TABLE IF NOT EXISTS movies (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            imdbID TEXT UNIQUE NOT NULL,
             title TEXT UNIQUE NOT NULL,
             year INTEGER NOT NULL,
-            rating REAL NOT NULL
+            rating REAL NOT NULL,
+            poster TEXT
         )
     """))
     connection.commit()
@@ -21,30 +23,40 @@ with engine.connect() as connection:
 def list_movies():
     """Retrieve all movies from the database."""
     with engine.connect() as connection:
-        result = connection.execute(text("SELECT title, year, rating FROM movies"))
+        result = connection.execute(text("SELECT imdbID, Title, Year, Rating, Poster FROM movies"))
         movies = result.fetchall()
+    print (movies)
+    print(type(movies))
+    return movies
+    # return {row[0]: {"Title": row[1], "Year": row[2], "Rating": row[3], "Poster": row[4]} for row in movies}
 
-    return {row[0]: {"year": row[1], "rating": row[2]} for row in movies}
+def add_movie(movie:dict):
+    """Add a movie to the database."""
 
-def add_movie(title, year, rating):
-    """Add a new movie to the database."""
+    imdbID=movie['imdbID']
+    title=movie['Title']
+    year=movie['Year']
+    rating=movie['Rating']
+    poster=movie['Poster']
+    print("Poster:", poster)
     with engine.connect() as connection:
         try:
             print(f"Inserting movie {title} into the database")
-            connection.execute(text("INSERT INTO movies (title, year, rating) VALUES (:title, :year, :rating)"),
-                               {"title": title, "year": year, "rating": rating})
+            params={"imdbID": imdbID, "title": title, "year": year, "rating": rating, "poster": poster}
+            connection.execute(text("INSERT INTO movies (imdbID, Title, Year, Rating, Poster) "
+                                    "VALUES (:imdbID, :title, :year, :rating, :poster)"), params)
             connection.commit()
             print(f"Movie '{title}' added successfully.")
         except Exception as e:
             print(f"Error: {e}")
 
-def delete_movie(movie_id, title) -> bool:
+def delete_movie(imdbID, title) -> bool:
     """Delete a movie from the database."""
     with engine.connect() as connection:
         try:
-            print(f"Deleting movie {title} with ID {movie_id} from the database")
-            connection.execute(text("DELETE FROM movies WHERE id = :id"),
-                               {"id": movie_id})
+            print(f"Deleting movie {title} with ID {imdbID} from the database")
+            connection.execute(text("DELETE FROM movies WHERE imdbID = :id"),
+                               {"id": imdbID})
             connection.commit()
             print(f"Movie '{title}' deleted successfully.")
         except Exception as e:
@@ -73,13 +85,13 @@ def update_movie(movie_id, new_rating, title):
 def search_movie(title,match_type:int=0) -> dict:
     """Search for a movie from the database."""
 
-    SEARCH_QUERY_0="SELECT id, title, year, rating FROM movies WHERE title = :title"
+    SEARCH_QUERY_0="SELECT imdbID, title, year, rating FROM movies WHERE title = :title"
     params_0={"title": title}
-    SEARCH_QUERY_1="SELECT id, title, year, rating FROM movies WHERE LOWER(title) = :title"
+    SEARCH_QUERY_1="SELECT imdbID, title, year, rating FROM movies WHERE LOWER(title) = :title"
     params_1={"title": title.lower()}
-    SEARCH_QUERY_2="SELECT id, title, year, rating FROM movies WHERE REPLACE(LOWER(title),' ','') = :title"
+    SEARCH_QUERY_2="SELECT imdbID, title, year, rating FROM movies WHERE REPLACE(LOWER(title),' ','') = :title"
     params_2={"title": title.lower().replace(' ','')}
-    SEARCH_QUERY_3="SELECT id, title, year, rating FROM movies WHERE LOWER(title) LIKE :title"
+    SEARCH_QUERY_3="SELECT imdbID, title, year, rating FROM movies WHERE LOWER(title) LIKE :title"
     params_3={"title": f"%{title.lower()}%"}
 
 
