@@ -23,19 +23,19 @@ with engine.connect() as connection:
 def list_movies():
     """Retrieve all movies from the database."""
     with engine.connect() as connection:
-        result = connection.execute(text("SELECT imdbID, Title, Year, imdbRating, Poster FROM movies"))
+        result = connection.execute(text("SELECT id, imdbID, Title, Year, imdbRating, Poster FROM movies"))
         movies = result.fetchall()
     print (movies)
     print(type(movies))
     return movies
 
-def add_movie(movie:dict):
+def add_movie(movie:dict) -> bool:
     """Add a movie to the database."""
 
     imdbID=movie['imdbID']
     title=movie['Title']
     year=movie['Year']
-    rating=movie['imdbRating']
+    rating=movie['Rating']
     poster=movie['Poster']
     print("Poster:", poster)
     with engine.connect() as connection:
@@ -46,16 +46,18 @@ def add_movie(movie:dict):
                                     "VALUES (:imdbID, :title, :year, :rating, :poster)"), params)
             connection.commit()
             print(f"Movie '{title}' added successfully.")
+            return True
         except Exception as e:
             print(f"Error: {e}")
+            return False
 
-def delete_movie(imdbID, title) -> bool:
+def delete_movie(movie_id, title) -> bool:
     """Delete a movie from the database."""
     with engine.connect() as connection:
         try:
-            print(f"Deleting movie {title} with ID {imdbID} from the database")
-            connection.execute(text("DELETE FROM movies WHERE imdbID = :id"),
-                               {"id": imdbID})
+            print(f"Deleting movie {title} with ID {movie_id} from the database")
+            connection.execute(text("DELETE FROM movies WHERE ID = :id"),
+                               {"id": movie_id})
             connection.commit()
             print(f"Movie '{title}' deleted successfully.")
         except Exception as e:
@@ -86,13 +88,13 @@ def delete_movie(imdbID, title) -> bool:
 def search_movie(title,match_type:int=0) -> dict:
     """Search for a movie from the database."""
 
-    SEARCH_QUERY_0="SELECT imdbID, title, year, imdbRating FROM movies WHERE title = :title"
+    SEARCH_QUERY_0="SELECT id,imdbID, title, year, imdbRating,poster FROM movies WHERE title = :title"
     params_0={"title": title}
-    SEARCH_QUERY_1="SELECT imdbID, title, year, imdbRating FROM movies WHERE LOWER(title) = :title"
+    SEARCH_QUERY_1="SELECT id,imdbID, title, year, imdbRating, poster FROM movies WHERE LOWER(title) = :title"
     params_1={"title": title.lower()}
-    SEARCH_QUERY_2="SELECT imdbID, title, year, imdbRating FROM movies WHERE REPLACE(LOWER(title),' ','') = :title"
+    SEARCH_QUERY_2="SELECT id,imdbID, title, year, imdbRating, poster FROM movies WHERE REPLACE(LOWER(title),' ','') = :title"
     params_2={"title": title.lower().replace(' ','')}
-    SEARCH_QUERY_3="SELECT imdbID, title, year, imdbRating FROM movies WHERE LOWER(title) LIKE :title"
+    SEARCH_QUERY_3="SELECT id,imdbID, title, year, imdbRating, poster FROM movies WHERE LOWER(title) LIKE :title"
     params_3={"title": f"%{title.lower()}%"}
 
 
