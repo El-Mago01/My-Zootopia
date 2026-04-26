@@ -83,7 +83,7 @@ def command_list_movies():
     """
     movies=mss.list_movies()
     print(movies)
-    print(bcolors.ENDC + f"{'imdbID':<12}|{'Title':<80}|{'Year':<6}|{'Rating':<8}|{'Poster link':<2}")
+    print(bcolors.ENDC + f"{'imdbID':<12}|{'Title':<80}|{'Year':<6}|{'imdbRating':<8}|{'Poster link':<2}")
     print("============================================================================================"
           "============================================================================================")
     for movie in movies:
@@ -92,7 +92,7 @@ def command_list_movies():
 def enter_rating()->float:
     while True:
         try:
-            rating = input("Enter movie rating: ").strip()
+            rating = input("Enter movie imdbRating: ").strip()
             if rating == "":
                 return -1
             rating = float(rating)
@@ -101,7 +101,7 @@ def enter_rating()->float:
             else:
                 raise ValueError
         except (TypeError, ValueError):
-            print(bcolors.FAIL + 'Please enter a valid rating value from 0-10 or Enter to abort' + bcolors.ENDC)
+            print(bcolors.FAIL + 'Please enter a valid imdbRating value from 0-10 or Enter to abort' + bcolors.ENDC)
 
 def enter_year()->int:
     while True:
@@ -130,7 +130,7 @@ def enter_movie_title():
 def command_add_movie() -> bool:
     """
     Algorithm:
-    1. get user input for title, year of release and rating
+    1. get user input for title, year of release and imdbRating
     2. Check if similar titles are already present in the DB.
     3.      if yes, show the available movies and ask for input if the user wants to continue
     4.          if yes, add the movie to the DB.
@@ -154,9 +154,9 @@ def command_add_movie() -> bool:
         3. Find all movies containing the movie title
         4. Print all the found movies, including the imdbID, title and year
         5. Ask the user to enter the movie it wanted to insert
-        6. For the provided imdbID, return the full title, the year and, if available, a rating.
+        6. For the provided imdbID, return the full title, the year and, if available, an imdbRating.
 
-        :return: full title, the year and, if available, a rating.
+        :return: full title, the year and, if available, an imdbRating.
         """
         title = enter_movie_title()
         selected_movie={}
@@ -184,14 +184,14 @@ def command_add_movie() -> bool:
             except ValueError:
                 year = 0
             try:
-                rating = float(mdf.fetch_specific_movie_detail_item('Rating', imdbID))
+                rating = float(mdf.fetch_specific_movie_detail_item('imdbRating', imdbID))
             except ValueError:
                 rating = 0
             print(selected_movie)
             movie={'imdbID': imdbID,
                    'Title': selected_movie['Title'],
                    'Year': year,
-                   'Rating': rating,
+                   'imdbRating': rating,
                    'Poster': selected_movie['Poster']}
             return movie
         else: # User pressed ENTER to abort
@@ -215,7 +215,6 @@ def command_add_movie() -> bool:
                 print("The following similar movies already exist in the DB:")
                 print(bcolors.ENDC + f"{'ID':<8}| {'Title':<80}| {'Year':<10}")
                 print("================================================================================================")
-                # print(bcolors.ENDC + f"{movie[0]:<80}| {movies[movie]['year']:<6}| {movies[movie]['rating']:<6}")
                 for movie in movies_found:
                     print(bcolors.ENDC + f"ID{movie[0]:<8}| {movie[1]:<80}| {movie[2]:<10}")
                 choice = input("Do you want to continue y/n: ")
@@ -229,20 +228,20 @@ def select_movie_id() -> tuple:
     2. Check if the movie exist in the DB with the EXACT title match_type(0).
     3. If not found, check if there are similar movies in the DB match_type(3)
         show the movies with a number to the user and ask for input to select one
-        return the id, title, year and rating of the selected movie.
+        return the id, title, year and imdbRating of the selected movie.
         If the user does not provide a valid number to select a movie. Return an empty
         tuple
     4. If 1 or more movies found:
         show the movies with a number to the user and ask for input to select one
-        return the id, title, year and rating of the selected movie
+        return the id, title, year and imdbRating of the selected movie
         If the user does not provide a valid number to select a movie. Return an empty
         tuple
-    :return: (id,title,year,rating) or tuple()
+    :return: (id,title,year,imdbRating) or tuple()
     """
 
     def show_found_movies_and_select(movies: list) -> int:
         print("=======================================================================================================")
-        print(bcolors.ENDC + f"{'imdbID':<12}|{'Title':<80}|{'Year':<6}|{'Rating':<6}")
+        print(bcolors.ENDC + f"{'imdbID':<12}|{'Title':<80}|{'Year':<6}|{'imdbRating':<6}")
         for movie in movies:
             print(bcolors.ENDC + f"{movie[0]:<12}|{movie[1]:<80}|{movie[2]:<6}|{movie[3]:<6}")
         valid_entry=False
@@ -306,7 +305,7 @@ def command_delete_movie() -> bool:
     5.      If 1 or multiple similar movies found:
     6.          Show the movies with number to the user and for input, which number to
                 delete or empty string to return to MENU
-    7.          Delete the movie in the DB using the ID with the new rating
+    7.          Delete the movie in the DB using the ID with the new imdbRating
     8. If multiple movies found: act like 6,7,8
 
     :return: a boolean if the movie was updated or not
@@ -334,8 +333,8 @@ def command_update_movie() -> bool:
     5.      If 1 or multiple similar movies found:
     6.          Show the movies with number to the user and for input, which number to
                 update or empty string to return to MENU
-    7.          ask for the new rating
-    8.          Update the movie in the DB using the ID with the new rating
+    7.          ask for the new imdbRating
+    8.          Update the movie in the DB using the ID with the new imdbRating
     9. If multiple movies found: act like 6,7,8
 
     :return: a boolean if the movie was updated or not
@@ -356,8 +355,8 @@ def command_update_movie() -> bool:
 
 def max_min_rating_movie() -> tuple:
     """
-    Gather the statistics from the films and ratings in the dict.
-    Return best movie, worst movie, and the related ratings as tuple
+    Gather the statistics from the films and imdbRating in the dict.
+    Return best movie, worst movie, and the related imdbRating as tuple
     """
     min_rating = min(movies.values())
     max_rating = max(movies.values())
@@ -365,9 +364,9 @@ def max_min_rating_movie() -> tuple:
     best_movie = ""
     for movie in movies:
         if movies[movie] == min_rating:
-            worst_movie+=movie + " + " # in case 2 movies have the worst rating
+            worst_movie+=movie + " + " # in case 2 movies have the worst imdbRating
         if movies[movie] == max_rating:
-            best_movie+=movie + " + " # in case 2 movies have the best rating
+            best_movie+=movie + " + " # in case 2 movies have the best imdbRating
     if best_movie == "":
         best_movie = "Not found + "
     if worst_movie == "":
@@ -380,14 +379,14 @@ def show_stats():
     average_rating=statistics.mean(movies.values())
     median_rating=statistics.median(list(movies.values()))
     best,max_rat, worst, min_rat = max_min_rating_movie(movies)
-    print(f"Average rating: {average_rating}")
-    print(f"Median rating: {median_rating}")
+    print(f"Average imdbRating: {average_rating}")
+    print(f"Median imdbRating: {median_rating}")
     print(f"Best movie: {best}, {max_rat}")
     print(f"Worst movie: {worst}, {min_rat}")
 
 def select_random_movie() -> tuple:
     """
-    selects a random movie and returns a tuple including the movie title and it's rating
+    selects a random movie and returns a tuple including the movie title and it's imdbRating
     """
     #Your movie for tonight: Star Wars: Episode V, it's rated 8.7
     random_movie=random.choice(list(movies.keys()))
@@ -443,10 +442,10 @@ def sort_by_rating(direction:str='descending') -> list:
     else:
         descending=False
     sorted_list = sorted(movie_list, key=lambda tup: tup[1],
-                         reverse=descending)  # sorts the list of tuples based on the rating (tup[1])
+                         reverse=descending)  # sorts the list of tuples based on the imdbRating (tup[1])
     print()
-    for movie,rating in sorted_list:
-        print(bcolors.ENDC + f"{movie}: {rating}")
+    for movie,imdbRating in sorted_list:
+        print(bcolors.ENDC + f"{movie}: {imdbRating}")
     return sorted_list
 
 
@@ -460,7 +459,7 @@ def create_rating_histogram(movies:dict):
     """
     a=list(movies.values())
     fig=plt.hist(a)
-    plt.title("Histogram of movie ratings")
+    plt.title("Histogram of movie imdbRatings")
     plt.xlabel("value")
     plt.ylabel("frequency")
     plt.show
