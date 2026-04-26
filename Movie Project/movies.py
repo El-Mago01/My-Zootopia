@@ -11,6 +11,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from thefuzz import fuzz
 import movie_storage_sql as mss
+import movie_detail_fetcher as mdf
 
 # Algorithm:
 # =============================
@@ -81,8 +82,12 @@ def command_list_movies():
     list the all available movies in the current DB
     """
     movies=mss.list_movies()
+    print(movies)
+    print(bcolors.ENDC + f"{'imdbID':<12}|{'Title':<80}|{'Year':<6}|{'Rating':<8}|{'Poster link':<2}")
+    print("============================================================================================"
+          "============================================================================================")
     for movie in movies:
-        print(bcolors.ENDC+ f"{movie} - {movies[movie]['year']} - {movies[movie]['rating']}")
+        print(bcolors.ENDC+ f"{movie[0]:<12}|{movie[1]:<80}|{movie[2]:<6}|{movie[3]:<8}|{movie[4]:<2}")
 
 def enter_rating()->float:
     while True:
@@ -134,35 +139,88 @@ def command_add_movie() -> bool:
 
         :return: bool : success or not
     """
+    def select_movie_with_id(imdbID, movies_found)->dict:
+        movie={}
+        for movie in movies_found:
+            if imdbID == movie['imdbID']:
+                return movie
+        return {}
 
-    def enter_correct_movie_input() -> tuple:
+    def enter_correct_movie_input() -> dict:
+        """
+        algorithm:
+        1. Ask input for movie title.
+        2. Check if the input is not empty, at least 1 character
+        3. Find all movies containing the movie title
+        4. Print all the found movies, including the imdbID, title and year
+        5. Ask the user to enter the movie it wanted to insert
+        6. For the provided imdbID, return the full title, the year and, if available, a rating.
+
+        :return: full title, the year and, if available, a rating.
+        """
         title = enter_movie_title()
-        year = enter_year()
-        rating = enter_rating()
-        if rating == -1 or year == -1:
-            return ("", -1, -1)
-        return title, year, rating
-
-    def add_the_movie(title: str, year: int, rating: int):
-        try:
-            mss.add_movie(title, year, rating)
-        except Exception as error:
-            print(f"Movie {title} not stored successfully. Please contact your system administrator")
-            print("Fault message is: ", error)
-        print(f"Movie {title} successfully added")
-
-    title, year, rating = enter_correct_movie_input()
-    if len(title) != 0:
-        movies_found=search_title(title,3)
+        selected_movie={}
+        movies_found=mdf.fetch_movie_general_data(title)
         if len(movies_found) == 0:
-            add_the_movie(title,year,rating)
-        else:
-            print("The following similar movies already exist in the DB:")
-            for movie in movies_found:
-                print(f"ID{movie[0]} - {movie[1]} ({movies_found[2]})")
-            choice = input("Do you want to continue y/n")
-            if choice.lower() == "y":
-                add_the_movie(title,year,rating)
+            return {}
+        print(f"Showing you now {len(movies_found)} movies")
+        print(f"{'imdbID':<15}  - {'Title':<40} - {'Year':<10}")
+        print("==============================================================")
+        for movie in movies_found:
+            print(f"{movie['imdbID']:<15}  - {movie['Title']:<40} - {movie['Year']:<10}")
+        while 1:
+            imdbID = input(bcolors.OKGREEN + "Enter movie valid imdbID or ENTER to abort: ").strip()
+
+            if imdbID == "":
+                break
+            selected_movie = select_movie_with_id(imdbID,movies_found)
+            if len(selected_movie) != 0: # If a valid imdbID was provided
+                break
+            else:
+                print(bcolors.FAIL + "Please enter a valid movie imdbID or ENTER to abort" + bcolors.ENDC)
+        if imdbID != "": # User provided a valid imdbID
+            try:
+                year = int(mdf.fetch_specific_movie_detail_item('Year', imdbID))
+            except ValueError:
+                year = 0
+            try:
+                rating = float(mdf.fetch_specific_movie_detail_item('Rating', imdbID))
+            except ValueError:
+                rating = 0
+            print(selected_movie)
+            movie={'imdbID': imdbID,
+                   'Title': selected_movie['Title'],
+                   'Year': year,
+                   'Rating': rating,
+                   'Poster': selected_movie['Poster']}
+            return movie
+        else: # User pressed ENTER to abort
+            return {}
+
+    def add_the_movie(movie: dict) -> None:
+        try:
+            mss.add_movie(movie)
+        except Exception as error:
+            print(f"Movie {movie['Title']} not stored successfully. Please contact your system administrator")
+            print("Fault message is: ", error)
+        print(f"Movie {movie['Title']} successfully added")
+
+    new_movie = enter_correct_movie_input()
+    if len(new_movie) != 0: # A valid imdbID was provided
+        if len(new_movie['Title']) != 0:
+            movies_found=search_title(new_movie['Title'],3)
+            if len(movies_found) == 0:
+                add_the_movie(new_movie)
+            else:
+                print("The following similar movies already exist in the DB:")
+                print(bcolors.ENDC + f"{'ID':<8}| {'Title':<80}| {'Year':<10}")
+                print("================================================================================================")
+                # print(bcolors.ENDC + f"{movie[0]:<80}| {movies[movie]['year']:<6}| {movies[movie]['rating']:<6}")
+                for movie in movies_found:
+                    print(bcolors.ENDC + f"ID{movie[0]:<8}| {movie[1]:<80}| {movie[2]:<10}")
+                choice = input("Do you want to continue y/n: ")
+                if choice.lower() == "y":
+                    add_the_movie(new_movie)
 
 def select_movie_id() -> tuple:
     """
@@ -183,50 +241,60 @@ def select_movie_id() -> tuple:
     """
 
     def show_found_movies_and_select(movies: list) -> int:
-        movie_nr=1
+        print("=======================================================================================================")
+        print(bcolors.ENDC + f"{'imdbID':<12}|{'Title':<80}|{'Year':<6}|{'Rating':<6}")
         for movie in movies:
-            print(movie)
-            print(type(movie))
-            print(f"{movie_nr} - {movie[1]} ({movie[2]}) - ID{movie[0]}) - rating ({movie[3]})")
-            movie_nr+=1
-        try:
-            if len(movies) > 1:
-                movie_choice = input(
-                f"what movie do you want to select [1..{len(movies)}]? "
-                f"Or press Enter to return to MENU: ")
-            else:
-                movie_choice = input(
-                    f"Do you want to select this movie? Press 1 to select or "
-                    f"press Enter to return to MENU: ")
-            movie_choice=int(movie_choice)
-            if not (1<=movie_choice<=len(movies)):
-                raise ValueError(f"Please enter a valid movie number")
-        except (TypeError,ValueError):
-            movie_choice=-1
+            print(bcolors.ENDC + f"{movie[0]:<12}|{movie[1]:<80}|{movie[2]:<6}|{movie[3]:<6}")
+        valid_entry=False
+        movie_choice = -1
+        while valid_entry == False:
+            imdbID = input(
+            f"what movie do you want to select the imdbID to delete? "
+            f"Or press Enter to return to MENU: ")
+            if len(imdbID) == 0:
+                movie_choice = -1
+                break
+            counter=0
+            for movie in movies:
+                if movie[0] == imdbID:
+                    valid_entry = True
+                    movie_choice = counter
+                    break
+                counter+=1
+
         print ("movie choice =", movie_choice)
         return movie_choice
 
+    # =======================================================================
+    # The actual start of function select_movie_id
+    # =======================================================================
     title=enter_movie_title()
     # CHECK IF A MOVIE WITH THIS TITLE EXISTS IN THE DB with this EXACT title
     movies_found=search_title(title,0)
-    if len(movies_found) >= 1: # if the DB has exactly 1 entry found
+    if len(movies_found) >= 1: # if the DB has 1 or more entries found
         user_choice = show_found_movies_and_select(movies_found)
         if user_choice == -1:  # User did not select a movie to delete
+            print("Deletion of movie aborted!")
             return tuple()
         else:  # The user selected the movie to delete
-            print(f"Movie {movies_found[user_choice-1][1]} found. ")
-            return movies_found[user_choice-1]
+            print(f"Movie {movies_found[user_choice][1]} found. ")
+            return movies_found[user_choice]
     else:  # No movies found. Searching for movies with similar name
         print("Movie not found. Searching for movies with similar name")
         movies_found = search_title(title, 3)
         if len(movies_found) > 0:  # If 1 or more similar movies found
-            print("Found 1 or more movies with a similar name, please select")
+            print(bcolors.ENDC+"Found 1 or more movies with a similar name, please select")
             user_choice = show_found_movies_and_select(movies_found)
             print(user_choice)
-            if user_choice != -1:
-                return movies_found[user_choice-1]
-            else:
+            if user_choice != -1: # User aborted the search by pressing ENTER
+                return movies_found[user_choice]
+            else: # No movies with similar names found
+                print(bcolors.ENDC + "No movie found with that name in the DB")
                 return tuple()
+        else:
+            print("Movie not found in the DB, nor movies with a similar name")
+            return tuple()
+
 
 def command_delete_movie() -> bool:
     """
@@ -244,7 +312,8 @@ def command_delete_movie() -> bool:
     :return: a boolean if the movie was updated or not
     """
     selected_movie=select_movie_id()
-    print(selected_movie)
+    print("This is the movie selected: ",selected_movie)
+    print("Type: ", type(selected_movie))
     if len(selected_movie) == 0:
         return False
     if mss.delete_movie(selected_movie[0],selected_movie[1]):  # check if the deletion was successful
@@ -406,7 +475,7 @@ Function Dispatch Dictionary
 FUNCTIONS = { 1: (command_list_movies, "List movies"),
               2: (command_add_movie, "Add movie"),
               3: (command_delete_movie, "Delete movie"),
-              4: (command_update_movie, "Update movie"),
+              # 4: (command_update_movie, "Update movie"),
               5: (show_stats, "Show movie statistics"),
               6: (select_random_movie, "Select a movie randomly"),
               7: (search_title, "Search by title"),

@@ -37,20 +37,26 @@ def get_movie_data(imdbID:str="", title:str="") -> dict:
     try:
         response = requests.get(url)
         movie_details = response.json()
-    except requests.exceptions.RequestException as e:
-        print("GET Request failed:", e)
+    except Exception as e:
+        print("Could not access API: GET Request failed:", e)
+        print("Please contact your system administrator")
         movie_details = {}
+        return movie_details
     if movie_details['Response'] == "False": # the json contains an invalid response
-        print("Invalid response received: ", movie_details['Error'])
+        print("Movie not found!.", movie_details['Error'])
         movie_details = {}
     else:
         print("Valid response received: ", movie_details['Response'])
     return  movie_details
 
-def fetch_movie_general_data(title:str)-> tuple:
+def fetch_movie_general_data(title:str)-> dict:
     movie_data=get_movie_data("",title)
     print(movie_data)
-    return movie_data['Search']
+    print(type(movie_data))
+    if len(movie_data)>0:
+        return movie_data['Search']
+    else:
+        return {}
 
 
 def fetch_specific_movie_details(imdbID:str)-> dict:
