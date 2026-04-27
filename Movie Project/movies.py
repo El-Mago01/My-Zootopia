@@ -20,6 +20,7 @@ import matplotlib
 import sqlalchemy
 import movie_detail_fetcher as mdf
 import movie_storage_sql as mss
+import web_generator as wg
 matplotlib.use('Agg')
 
 # from random import choice
@@ -686,6 +687,10 @@ def command_create_rating_histogram():
     sys.stdout.flush()
     print(BColors.ENDC + "File histogram.png is created")
 
+def command_generate_webstie():
+    wg.generate_website(mss.list_movies())
+        
+
 
 # pylint: disable=pointless-string-statement
 """
@@ -694,12 +699,12 @@ Function Dispatch Dictionary
 FUNCTIONS = {1: (command_list_movies, "List movies"),
              2: (command_add_movie, "Add movie"),
              3: (command_delete_movie, "Delete movie"),
-             # 4: (command_update_movie, "Update movie"),
-             5: (command_show_stats, "Show movie statistics"),
-             6: (command_random_movie, "Select a movie randomly"),
-             7: (command_search_movie, "Search by title"),
-             8: (command_sort_by_rating, "Movies sorted by rating"),
-             9: (command_create_rating_histogram, "Create rating histogram"),
+             4: (command_show_stats, "Show movie statistics"),
+             5: (command_random_movie, "Select a movie randomly"),
+             6: (command_search_movie, "Search by title"),
+             7: (command_sort_by_rating, "Movies sorted by rating"),
+             8: (command_create_rating_histogram, "Create rating histogram"),
+             9: (command_generate_webstie, "Gereate the website"),
              0: (command_quit, "Exit")
              }
 
