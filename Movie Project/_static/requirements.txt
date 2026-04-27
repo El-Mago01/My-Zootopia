@@ -1,0 +1,2 @@
+After installation of the required packages, you can run the web generator to create the HTML file with the movie grid. 
+Make sure to have the `movies.db` file in the `data` directory after the initial run of the movies app.

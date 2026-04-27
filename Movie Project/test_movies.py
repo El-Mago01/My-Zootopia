@@ -1,5 +1,5 @@
 import pytest
-from movies import xxx
+from main import xxx
 
 
 if __name__ == '__main__':
