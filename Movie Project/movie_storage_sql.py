@@ -12,6 +12,7 @@ with engine.connect() as connection:
     connection.execute(text("""
         CREATE TABLE IF NOT EXISTS movies (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
             imdbID TEXT UNIQUE NOT NULL,
             title TEXT NOT NULL,
             year TEXT NOT NULL,
@@ -22,18 +23,30 @@ with engine.connect() as connection:
     connection.commit()
 
 
-def list_movies():
+def list_all_movies():
     """Retrieve all movies from the database."""
     with engine.connect() as conn:
         result = conn.execute(
-            text("SELECT id, imdbID, Title, Year, imdbRating, Poster FROM movies"))
+            text("SELECT id, imdbID, Title, Year, imdbRating, Poster, user_id FROM movies"))
+        movies = result.fetchall()
+    print(movies)
+    print(type(movies))
+    return movies
+
+def list_movies(user_id: int):
+    """Retrieve all movies from the database."""
+    with engine.connect() as conn:
+        result = conn.execute(
+            text("SELECT id, imdbID, Title, Year, imdbRating, Poster, user_id FROM movies WHERE user_id = :user_id"),
+            {"user_id": user_id}
+        )
         movies = result.fetchall()
     print(movies)
     print(type(movies))
     return movies
 
 # pylint: disable=invalid-name
-def add_movie(movie: dict) -> bool:
+def add_movie(movie: dict, user_id: int) -> bool:
     """Add a movie to the database."""
 
     imdbID = movie['imdbID']
@@ -46,6 +59,7 @@ def add_movie(movie: dict) -> bool:
         try:
             print(f"Inserting movie {title} into the database")
             params = {
+                "user_id": user_id,
                 "imdbID": imdbID,
                 "title": title,
                 "year": year,
@@ -53,8 +67,8 @@ def add_movie(movie: dict) -> bool:
                 "poster": poster}
             conn.execute(
                 text(
-                    "INSERT INTO movies (imdbID, Title, Year, imdbRating, Poster) "
-                    "VALUES (:imdbID, :title, :year, :rating, :poster)"),
+                    "INSERT INTO movies (user_id, imdbID, Title, Year, imdbRating, Poster) "
+                    "VALUES (:user_id, :imdbID, :title, :year, :rating, :poster)"),
                 params)
             conn.commit()
             print(f"Movie '{title}' added successfully.")
@@ -66,14 +80,14 @@ def add_movie(movie: dict) -> bool:
             return False
 
 
-def delete_movie(movie_id, title) -> bool:
+def delete_movie(movie_id: int, title: str, user_id: int) -> bool:
     """Delete a movie from the database."""
     with engine.connect() as conn:
         try:
             print(
-                f"Deleting movie {title} with ID {movie_id} from the database")
-            conn.execute(text("DELETE FROM movies WHERE ID = :id"),
-                               {"id": movie_id})
+                f"Deleting movie {title} with ID {movie_id} from the database for user_id {user_id}")
+            conn.execute(text("DELETE FROM movies WHERE ID = :id AND user_id = :user_id"),
+                               {"id": movie_id, "user_id": user_id})
             conn.commit()
             print(f"Movie '{title}' deleted successfully.")
         # Catch any exception that can occur results in movie not stored.
@@ -98,28 +112,29 @@ def delete_movie(movie_id, title) -> bool:
 #     return True
 
 
-# searches for movies in the dict using the search_string and 4 variants
-# expressed by match_type (int)
-#   match_type 0 => exact match, and case-sensitive
-#   match_type 1 => exact match but case-insensitive
-#   match_type 2 => matching characters, but case-insensitive and stripped
-#   match_type 3 => fuzzy matching
-# pylint: disable=invalid-name
-def search_movie(title, match_type: int = 0) -> dict:
+"""
+searches for movies in the dict using the search_string and 4 variants
+expressed by match_type (int)
+  match_type 0 => exact match, and case-sensitive
+  match_type 1 => exact match but case-insensitive
+  match_type 2 => matching characters, but case-insensitive and stripped
+  match_type 3 => fuzzy matching# pylint: disable=invalid-name
+"""
+def search_movie(title:str, user_id: int, match_type: int = 0) -> dict:
     """Search for a movie from the database."""
 
-    SEARCH_QUERY_0 = ("SELECT id,imdbID, title, year, imdbRating,poster FROM movies "
-                      "WHERE title = :title")
-    params_0 = {"title": title}
+    SEARCH_QUERY_0 = ("SELECT id, imdbID, title, year, imdbRating, poster FROM movies "
+                        "WHERE title = :title AND user_id = :user_id")
+    params_0 = {"title": title, "user_id": user_id}
     SEARCH_QUERY_1 = ("SELECT id,imdbID, title, year, imdbRating, poster FROM movies "
-                      "WHERE LOWER(title) = :title")
-    params_1 = {"title": title.lower()}
+                      "WHERE LOWER(title) = :title AND user_id = :user_id")
+    params_1 = {"title": title.lower(), "user_id": user_id}
     SEARCH_QUERY_2 = ("SELECT id,imdbID, title, year, imdbRating, poster FROM movies "
-                      "WHERE REPLACE(LOWER(title),' ','') = :title")
-    params_2 = {"title": title.lower().replace(' ', '')}
+                      "WHERE REPLACE(LOWER(title),' ','') = :title AND user_id = :user_id")
+    params_2 = {"title": title.lower().replace(' ', ''), "user_id": user_id}
     SEARCH_QUERY_3 = ("SELECT id,imdbID, title, year, imdbRating, poster FROM movies "
-                      "WHERE LOWER(title) LIKE :title")
-    params_3 = {"title": f"%{title.lower()}%"}
+                      "WHERE LOWER(title) LIKE :title AND user_id = :user_id")
+    params_3 = {"title": f"%{title.lower()}%", "user_id": user_id}
 
     with engine.connect() as conn:
         try:
@@ -160,13 +175,13 @@ def main():
     # found_movies=search_movie("The hulk",1)
     # print(f" This/these movie(s) were found{found_movies}")
 
-    found_movies = search_movie("    The    hulk   ", 2)
+    found_movies = search_movie("    The    hulk   ", 1, 2)
     print(f" This/these movie(s) were found{found_movies}")
 
-    found_movies = search_movie("hulk", 3)
+    found_movies = search_movie("hulk", 1, 3)
     print(f" This/these movie(s) were found{found_movies}")
 
-    found_movies = search_movie("Bee Bulk", 4)
+    found_movies = search_movie("Bee Bulk", 1, 1)
     print(f" This/these movie(s) were found{found_movies}")
 
 

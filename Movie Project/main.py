@@ -21,6 +21,7 @@ import sqlalchemy
 from typing import Optional
 import movie_detail_fetcher as mdf
 import movie_storage_sql as mss
+import user_storage_sql as uss
 import web_generator as wg
 matplotlib.use('Agg')
 
@@ -41,6 +42,8 @@ class BColors:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 
+current_user_id = -1
+current_username = ""
 
 # Constant used for the fuzzy search sensitivity. Adjust to higher level
 # to focus the search quality
@@ -80,6 +83,11 @@ def show_menu():
     """
     while True:
         clear_screen()  # clears the screen
+        if current_username:
+            print(
+                BColors.OKGREEN +
+                f"Welcome {current_username} to your movie database!" +
+                BColors.ENDC)
         print(
             BColors.OKBLUE +
             "** ** ** ** ** My Movies Database ** ** ** ** ** \n\n")
@@ -96,6 +104,15 @@ def show_menu():
         except (TypeError, ValueError):
             print(BColors.FAIL + "Please enter a valid choice!" + BColors.ENDC)
 
+
+def command_list_all_movies():
+    """
+    list the all available movies in the current DB
+    """
+    movies = mss.list_all_movies()
+    print(BColors.ENDC + f"Showing you now all movies in the DB")
+    command_list_movies(movies)
+
 # pylint: disable=dangerous-default-value
 def command_list_movies(movie_list: Optional[list] = None): # This trick is needed to avoid a problem 
                                                             # of a list getting the value None 
@@ -103,8 +120,8 @@ def command_list_movies(movie_list: Optional[list] = None): # This trick is need
     """
     list the all available movies in the current DB or list the provided movies
     """
-    if not movie_list:  # no list with movies is provided, so fetch the ones from the DB
-        movie_list = mss.list_movies()
+    if movie_list == None:  # no list with movies is provided, so fetch the ones from the DB
+        movie_list = mss.list_movies(current_user_id)
         print(BColors.ENDC + f"Showing you now {len(movie_list)} movie(s)")
         print(
             BColors.ENDC + f"{
@@ -125,8 +142,8 @@ def command_list_movies(movie_list: Optional[list] = None): # This trick is need
                     movie[2]:<60.58}|{
                     movie[3]:<12}|{
                         movie[4]:<12}|{
-                            movie[5][0:26]}...{movie[5][-36:]::<2.50}")
-    else:
+                            movie[5][0:26]}...{movie[5][-36:]:<2.50}")
+    else: # a list with movies is provided, so show those
         try:
             print(BColors.ENDC + f"Showing you now {len(movie_list)} movie(s)")
             print(
@@ -139,11 +156,19 @@ def command_list_movies(movie_list: Optional[list] = None): # This trick is need
                             'Poster link':<2}")
             print(
                 "========================================================================"
-                "========================================================================"
-                "========================================")
+                "======================================================================")
+            if len(movie_list) == 0:
+                print(BColors.ENDC + f"No movies found with the provided search criteria")
+                return
             if (isinstance(movie_list[0], tuple) or
                     isinstance(movie_list[0], sqlalchemy.engine.row.Row)):
                 for movie in movie_list:
+                    if len(movie[5]) > 36: # Ensure that poster link is not too long for the screen, if it is, shorten it with ... in the middle 
+                                           # Also check that the length of the poster link is not shorter than 36, otherwise it would result in an 
+                                           # error when slicing the string
+                        poster = movie[5][0:26] + "..." + movie[5][-36:]
+                    else:
+                        poster = movie[5]
                     print(
                         BColors.ENDC + f"{
                             movie[0]:<5}|{
@@ -151,7 +176,7 @@ def command_list_movies(movie_list: Optional[list] = None): # This trick is need
                             movie[2]:<60.58}|{
                             movie[3]:<12}|{
                             movie[4]:<12}|{
-                            movie[5][0:26]}...{movie[5][-36:]::<2.50}")
+                            poster::<2.50}")
             elif isinstance(movie_list[0], dict):
                 counter = 1
                 for movie in movie_list:
@@ -168,7 +193,7 @@ def command_list_movies(movie_list: Optional[list] = None): # This trick is need
                 raise TypeError("Unexpected Type", type(movie_list[0]))
         except (TypeError, KeyError) as e:
             print("Could not print the list of movies! Due to: ", e)
-            print("going for a simple print instead")
+            print("going for a raw print instead")
             for movie in movie_list:
                 print(movie)
                 print(type(movie))
@@ -349,7 +374,7 @@ def command_add_movie() -> bool:
     def add_the_movie(movie: dict) -> None:
         print("Storing the movie")
         try:
-            if not mss.add_movie(movie):
+            if not mss.add_movie(movie, current_user_id):
                 raise sqlite3.IntegrityError(
                     "Movie could not be stored. Check if the imdbID is not yet already stored.")
             print(f"Movie \'{movie['Title']}\' successfully added")
@@ -471,11 +496,11 @@ def command_delete_movie() -> bool:
         return False
     if mss.delete_movie(
             selected_movie[0],
-            selected_movie[2]):  # check if the deletion was successful
+            selected_movie[2], current_user_id):  # check if the deletion was successful
         print(f"Movie {selected_movie[2]} deleted successfully.")
         return True
     # If deletion was not successful
-    print(f"Deleting of movie {selected_movie[2]} failed...")
+    print(f"Deleting movie {selected_movie[2]} failed...")
     return False
 
 # updates a movie from the dict. Returns the updated movie name or empty
@@ -558,13 +583,14 @@ def command_show_stats():
 
     print(BColors.ENDC)
     rating_list = []
-    movies = mss.list_movies()
+    movies = mss.list_all_movies()
     for movie in movies:
         rating_list.append(movie[4])
-    print(rating_list)
+    print(f"rating_list: {rating_list}")
     average_rating = statistics.mean(rating_list)
     median_rating = statistics.median(rating_list)
     best, max_rat, worst, min_rat = max_min_worst_best_movie(movies, rating_list)
+    print(BColors.ENDC + f"Showing you now the statistics of all movies in the DB")
     print(f"Average imdbRating: {average_rating}")
     print(f"Median imdbRating: {median_rating}")
     print(f"Best movie: {best}, {max_rat}")
@@ -576,7 +602,7 @@ def command_random_movie() -> tuple:
     selects a random movie and returns a tuple including the movie title and it's imdbRating
     """
     # Your movie for tonight: Star Wars: Episode V, it's rated 8.7
-    movies = mss.list_movies()
+    movies = mss.list_all_movies()
     random_movie = random.choice(movies)
     print(
         BColors.ENDC +
@@ -618,7 +644,7 @@ def search_title(search_string, match_type: int = 0) -> list:
             raise ReferenceError(
                 BColors.FAIL +
                 "search function does not exist with that match_type")
-        movies_found = list(mss.search_movie(search_string, match_type))
+        movies_found = list(mss.search_movie(search_string, current_user_id, match_type))
     except ReferenceError:
         print(BColors.WARNING + "Movie not found" + BColors.ENDC)
 
@@ -634,6 +660,7 @@ def command_search_movie():
     """
     title = enter_movie_title()
     movies_found = search_title(title, 3)
+
     command_list_movies(movies_found)
 
 
@@ -647,7 +674,7 @@ def command_sort_by_rating(direction: str = 'descending') -> list:
     :param match_type:
     :return:
     """
-    movie_list = mss.list_movies()
+    movie_list = mss.list_movies(current_user_id)
     if direction == 'descending':
         descending = True
     else:
@@ -655,8 +682,8 @@ def command_sort_by_rating(direction: str = 'descending') -> list:
     # sorts the list of tuples based on the imdbRating (tup[4])
     sorted_list = sorted(
         movie_list,
-        key=lambda tup: tup[4],
-        reverse=descending)
+        key=lambda tup: tup[4], reverse=descending)
+    print(BColors.ENDC + f"Showing you now all movies in the DB for {current_username} sorted by rating in {direction}")
     command_list_movies(sorted_list)
 
 
@@ -667,7 +694,6 @@ def command_quit():
     """
     sys.exit()
 
-
 def command_create_rating_histogram():
     """
     Creates a histogram of the ratings in the dict
@@ -677,7 +703,7 @@ def command_create_rating_histogram():
     import matplotlib.pyplot as plt
     """
     rating_list = []
-    movies = mss.list_movies()
+    movies = mss.list_all_movies()
     for movie in movies:
         rating_list.append(movie[4])
     plt.hist(rating_list)
@@ -689,24 +715,186 @@ def command_create_rating_histogram():
     sys.stdout.flush()
     print(BColors.ENDC + "File histogram.png is created")
 
+
 def command_generate_webstie():
-    wg.generate_website(mss.list_movies())
+    wg.generate_website(mss.list_movies(current_user_id),current_username)
+
+def command_create_new_user() -> tuple:
+    """
+    Asks the user to create a new user profile by providing a username and email address. 
+    It will then create a new user profile in the database and return the username and user_id of the created user.
+    :return: username and user_id of the created user
+    """
+    username = input("Enter your username: ")
+    email_address = input("Enter your email address: ")
+    user_id = uss.add_user(username, email_address)
+    if user_id != -1:
+        print(f"User profile for {username} created successfully.")
+        return user_id, username
+    else:
+        print(f"Failed to create user profile for {username}. Exiting application.")
+        return -1, ""
+
+def command_update_user_profile():
+    """
+    updates the user profile in the database by asking for the username and email address
+    :return:
+    """
+    global current_user_id, current_username
+    clear_screen()
+    command_list_users()
+    selected_user_id = input("Enter the ID of the user you want to update or press ENTER to abort: ")
+    if selected_user_id == "":
+        print("User profile update aborted.")
+        return
+    try:        
+        selected_user_id = int(selected_user_id)
+        users = uss.list_users()
+        for user in users:
+            if user[0] == selected_user_id:
+                orig_username = user[1]
+                orig_email_address = user[2]  
+                break
+        else:
+            print("Invalid user ID provided. User profile update aborted.")
+            return
+    except (ValueError, TypeError):
+        print("Invalid input provided. User profile update aborted.")
+        return
+    username = input(f"Enter a new username (was {orig_username}): ")
+    if username == "":
+        username = orig_username
+        print("Using original username: ", username)
+    email_address = input(f"Enter a new email address (was {orig_email_address}): ")
+    if email_address == "":
+        email_address = orig_email_address
+        print("Using original email address: ", email_address)
+    if uss.update_user_profile(selected_user_id,username, email_address):
+        print(f"User profile for {username} updated successfully for user {selected_user_id}.")
+        if current_user_id == selected_user_id:
+            current_username = username
+    else:
+        print(f"Failed to update user profile for {current_user_id}.")
         
+def command_select_user() -> tuple:
+    """
+    Asks the user to select a user profile from the database. Returns the user_id of the selected user.
+    If no users are available, it will ask to create a new user profile. 
+    if users are available, it will show the list of users and ask to select one by providing the user_id.
+    if the user provides an invalid user_id, it will ask again until a valid user_id is provided or the user presses ENTER to abort.
+    if the user presses ENTER to abort, it will return None.
+    If the user selects to create a new user profile, it will ask for the username and email address and create a new user profile in the database.
+
+    :return: user_id of the selected user or None if no user is selected
+    """
+    global current_user_id, current_username
+    users = uss.list_users()
+    if not users:
+        print("No users found in the database. Please create a new user profile.")
+        user_id, username = create_new_user()
+        if user_id != -1:
+            print(f"User profile for {username} created successfully.")
+            return user_id, username
+        else:
+            print(f"Failed to create user profile for {username}. Exiting application.")
+            return -1, ""
+    else:
+        print("Available users:")
+        for user in users:
+            print(f"{user[0]} - {user[1]}: ({user[2]})")
+        while True:
+            try:
+                selected_user_id = input("Enter the ID of the user you want to select or type 'new' to create a new profile: ")
+                if selected_user_id.lower() == 'new':
+                    user_id, username = create_new_user()
+                    return user_id, username
+                selected_user_id = int(selected_user_id)
+                for user in users:
+                    if user[0] == selected_user_id:
+                        current_user_id = selected_user_id
+                        current_username = user[1]  
+                        return selected_user_id, user[1]
+                print("Invalid user ID. Please try again.")
+            except (ValueError, TypeError):
+                print("Please enter a valid integer for the user ID.")
+
+def command_list_users():
+    """
+    Lists all the users in the database by showing their user_id, username and email address.
+    :return:
+    """
+    users = uss.list_users()
+    if not users:
+        print("No users found in the database.")
+    else:
+        print("Available users:")
+        for user in users:
+            print(f"{user[0]} - {user[1]}: ({user[2]})")
+
+def command_delete_user():
+    """
+    Deletes a user profile from the database by asking for the user_id of the user to delete.
+    It will then delete the user profile and all the movies associated with that user from the database.
+    :return:
+    """
+    def delete_all_movies_of_user(user_id: int):
+        movies = mss.list_movies(user_id)
+        for movie in movies:
+            mss.delete_movie(movie[0], movie[2], user_id)
+
+    global current_user_id, current_username
+    users = uss.list_users()
+    if not users:
+        print("No users found in the database.")
+        return
+    print("Available users:")
+    for user in users:
+        print(f"{user[0]} - {user[1]}: ({user[2]})")
+    while True:
+        try:
+            selected_user_id = input("Enter the ID of the user you want to delete or press ENTER to abort: ")
+            if selected_user_id == "":
+                print("User deletion aborted.")
+                return
+            selected_user_id = int(selected_user_id)
+            for user in users:
+                if user[0] == selected_user_id:
+                    if uss.delete_user(selected_user_id):
+                        delete_all_movies_of_user(selected_user_id)
+                        print(f"User {user[1]} and all associated movies deleted successfully.")
+                        if current_user_id == selected_user_id:
+                            current_user_id = -1
+                            current_username = ""
+                            command_select_user()
+                        print(f"User {user[1]} deleted successfully.")
+                    else:
+                        print(f"Failed to delete user {user[1]}.")
+                    return
+            print("Invalid user ID. Please try again.")
+        except (ValueError, TypeError):
+            print("Please enter a valid integer for the user ID.")
+    
 
 
 # pylint: disable=pointless-string-statement
 """
 Function Dispatch Dictionary
 """
-FUNCTIONS = {1: (command_list_movies, "List movies"),
-             2: (command_add_movie, "Add movie"),
-             3: (command_delete_movie, "Delete movie"),
-             4: (command_show_stats, "Show movie statistics"),
-             5: (command_random_movie, "Select a movie randomly"),
-             6: (command_search_movie, "Search by title"),
-             7: (command_sort_by_rating, "Movies sorted by rating"),
-             8: (command_create_rating_histogram, "Create rating histogram"),
-             9: (command_generate_webstie, "Gereate the website"),
+FUNCTIONS = {1: (command_list_movies, "List all my movies"),
+             2: (command_list_all_movies, "List all movies in the database"),
+             3: (command_add_movie, "Add movie"),
+             4: (command_delete_movie, "Delete movie"),
+             5: (command_show_stats, "Show movie statistics"),
+             6: (command_random_movie, "Select a movie randomly"),
+             7: (command_search_movie, "Search by title"),
+             8: (command_sort_by_rating, "Movies sorted by rating"),
+             9: (command_create_rating_histogram, "Create rating histogram"),
+             10: (command_generate_webstie, "Generate the website"),
+             11: (command_update_user_profile, "Update user profile"),
+             12: (command_select_user, "Change user"),
+             13: (command_create_new_user, "Add user"),
+             14: (command_list_users, "List users"),
+             15: (command_delete_user, "Delete user"),
              0: (command_quit, "Exit")
              }
 
@@ -716,6 +904,16 @@ def main():
     Order of the display of the menu and ask for user input to select an option
     :return:
     """
+    clear_screen()
+    global current_user_id, current_username
+    selected_user_id, selected_username = command_select_user() # ask the user to select a user profile, returns the user_id of the selected user
+    current_user_id = selected_user_id
+    current_username = selected_username
+    print(f"Selected user ID: {current_user_id}, username: {current_username}")
+
+    if selected_user_id is None:
+        print("No user selected, exiting the application.")
+        return
     while True:
         menu_selection = show_menu()
         menu_selection()

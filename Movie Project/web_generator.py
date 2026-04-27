@@ -1,7 +1,6 @@
 import os
 from pathlib import Path
 
-PAGE_TITLE="MAGO's Favorite Films and Series"
 MOVIES="_static/mago_favorite_movies.html"
 
 def load_html_file(file_path):
@@ -30,10 +29,12 @@ def generate_grid(movies: list): #A list of tuples with the movies
         """
     return grid
     
-def generate_website(movies):
+def generate_website(movies, username):
     """
     Generates a website with the movies in the MOVIES file.
     """  
+    PAGE_TITLE=f"{username}'s Favorite Films and Series"
+    MOVIES=f"_static/{username}_favorite_movies.html"
     TEMPLATE="_static/index_template.html"
     _TITLE_="__TEMPLATE_TITLE__"
     _MOVIE_GRID_="__TEMPLATE_MOVIE_GRID__"
