@@ -1,21 +1,24 @@
 # import sqlite3
-import os
 from pathlib import Path
 from sqlalchemy import create_engine, text
 
+
 class BColors:
     """Utility class to represent colors on the terminal."""
-    HEADER = '\033[95m'
-    MENU_TEXT = '\033[94m'
-    OKCYAN = '\033[96m'
-    INPUT_TEXT = '\033[92m'
-    WARNING = '\033[93m'
-    BLINKING = '\033[5m'
-    FAIL = '\033[91m'
-    LISTING = '\033[0m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
+
+    HEADER = "\033[95m"
+    MENU_TEXT = "\033[94m"
+    OKCYAN = "\033[96m"
+    INPUT_TEXT = "\033[92m"
+    WARNING = "\033[93m"
+    BLINKING = "\033[5m"
+    FAIL = "\033[91m"
+    LISTING = "\033[0m"
+    ENDC = "\033[0m"
+    BOLD = "\033[1m"
+    UNDERLINE = "\033[4m"
+
+
 # Define the database URL
 BASE_DIR = Path(__file__).resolve().parent
 DB_PATH = BASE_DIR / "data" / "movies.db"
@@ -47,31 +50,38 @@ def list_all_movies():
     """Retrieve all movies from the database."""
     with engine.connect() as conn:
         result = conn.execute(
-            text("SELECT id, imdbID, Title, Year, imdbRating, Poster, note, country, user_id FROM movies"))
+            text(
+                "SELECT id, imdbID, Title, Year, imdbRating, Poster, note, country, user_id FROM movies"
+            )
+        )
         movies = result.fetchall()
     return movies
+
 
 def list_movies(user_id: int):
     """Retrieve all movies from the database that matches the user_id."""
     with engine.connect() as conn:
         result = conn.execute(
-            text("SELECT id, imdbID, Title, Year, imdbRating, Poster, note, country, user_id FROM movies WHERE user_id = :user_id"),
-            {"user_id": user_id}
+            text(
+                "SELECT id, imdbID, Title, Year, imdbRating, Poster, note, country, user_id FROM movies WHERE user_id = :user_id"
+            ),
+            {"user_id": user_id},
         )
         movies = result.fetchall()
     # print(movies)
     return movies
 
+
 # pylint: disable=invalid-name
 def add_movie(movie: dict, user_id: int) -> bool:
     """Add a movie to the database."""
 
-    imdbID = movie['imdbID']
-    title = movie['Title']
-    year = movie['Year']
-    rating = movie['Rating']
-    poster = movie['Poster']
-    country = movie['Country']
+    imdbID = movie["imdbID"]
+    title = movie["Title"]
+    year = movie["Year"]
+    rating = movie["Rating"]
+    poster = movie["Poster"]
+    country = movie["Country"]
     with engine.connect() as conn:
         try:
             print(BColors.LISTING + f"Inserting movie {title} into the database")
@@ -82,20 +92,24 @@ def add_movie(movie: dict, user_id: int) -> bool:
                 "year": year,
                 "rating": rating,
                 "poster": poster,
-                "country": country
-                }
+                "country": country,
+            }
             conn.execute(
                 text(
                     "INSERT INTO movies (user_id, imdbID, Title, Year, imdbRating, Poster, Country) "
-                    "VALUES (:user_id, :imdbID, :title, :year, :rating, :poster, :country)"),
-                params)
+                    "VALUES (:user_id, :imdbID, :title, :year, :rating, :poster, :country)"
+                ),
+                params,
+            )
             conn.commit()
             # print(BColors.LISTING + f"Movie '{title}' added successfully." + BColors.ENDC)
             return True
         # Catch any exception that can occur results in movie not stored.
         # pylint: disable=broad-exception-caught
         except Exception as e:
-            print(BColors.FAIL + f"Error during storage of the movie: {e}" + BColors.ENDC)
+            print(
+                BColors.FAIL + f"Error during storage of the movie: {e}" + BColors.ENDC
+            )
             return False
 
 
@@ -103,12 +117,20 @@ def delete_movie(movie_id: int, title: str, user_id: int) -> bool:
     """Delete a movie from the database."""
     with engine.connect() as conn:
         try:
-            print(BColors.LISTING +
-                f"Deleting movie {title} with ID {movie_id} from the database for user_id {user_id}")
-            conn.execute(text("DELETE FROM movies WHERE ID = :id AND user_id = :user_id"),
-                               {"id": movie_id, "user_id": user_id})
+            print(
+                BColors.LISTING
+                + f"Deleting movie {title} with ID {movie_id} from the database for user_id {user_id}"
+            )
+            conn.execute(
+                text("DELETE FROM movies WHERE ID = :id AND user_id = :user_id"),
+                {"id": movie_id, "user_id": user_id},
+            )
             conn.commit()
-            print(BColors.LISTING + f"Movie '{title}' deleted successfully." + BColors.ENDC)
+            print(
+                BColors.LISTING
+                + f"Movie '{title}' deleted successfully."
+                + BColors.ENDC
+            )
         # Catch any exception that can occur results in movie not stored.
         # pylint: disable=broad-exception-caught
         except Exception as e:
@@ -116,24 +138,32 @@ def delete_movie(movie_id: int, title: str, user_id: int) -> bool:
             return False
     return True
 
+
 def update_movie(movie_id: int, new_note: str, title: str) -> bool:
     """Update a movie's rating in the database."""
-    with engine.connect() as connection:
+    with engine.connect() as conn:
         try:
-            print(BColors.LISTING + f"Updating movie {title} with ID {movie_id} from the database "
-                  + f"with the following note: \n{new_note}" + BColors.ENDC)
-            connection.execute(text("UPDATE movies SET note = :note WHERE id = :id"),
-                               {"id": movie_id, "note": new_note})
-            connection.commit()
+            print(
+                BColors.LISTING
+                + f"Updating movie {title} with ID {movie_id} from the database "
+                + f"with the following note: \n{new_note}"
+                + BColors.ENDC
+            )
+            conn.execute(
+                text("UPDATE movies SET note = :note WHERE id = :id"),
+                {"id": movie_id, "note": new_note},
+            )
+            conn.commit()
             # print(BColors.LISTING + f"Movie '{title}' updated successfully." + BColors.ENDC)
+        # Catch any exception that can occur results in movie not stored.
+        # pylint: disable=broad-exception-caught
         except Exception as e:
             print(BColors.FAIL + f"Error: {e}" + BColors.ENDC)
             return False
     return True
 
 
-
-def search_movie(title:str, user_id: int, match_type: int = 0) -> dict:
+def search_movie(title: str, user_id: int, match_type: int = 0) -> dict:
     """
     Search for a movie from the database.
 
@@ -145,22 +175,34 @@ def search_movie(title:str, user_id: int, match_type: int = 0) -> dict:
     match_type 3 => fuzzy matching# pylint: disable=invalid-name
     """
 
-    SEARCH_QUERY_0 = ("SELECT id, imdbID, title, year, imdbRating, poster FROM movies "
-                        "WHERE title = :title AND user_id = :user_id")
+    SEARCH_QUERY_0 = (
+        "SELECT id, imdbID, title, year, imdbRating, poster FROM movies "
+        "WHERE title = :title AND user_id = :user_id"
+    )
     params_0 = {"title": title, "user_id": user_id}
-    SEARCH_QUERY_1 = ("SELECT id,imdbID, title, year, imdbRating, poster FROM movies "
-                      "WHERE LOWER(title) = :title AND user_id = :user_id")
+    SEARCH_QUERY_1 = (
+        "SELECT id,imdbID, title, year, imdbRating, poster FROM movies "
+        "WHERE LOWER(title) = :title AND user_id = :user_id"
+    )
     params_1 = {"title": title.lower(), "user_id": user_id}
-    SEARCH_QUERY_2 = ("SELECT id,imdbID, title, year, imdbRating, poster FROM movies "
-                      "WHERE REPLACE(LOWER(title),' ','') = :title AND user_id = :user_id")
-    params_2 = {"title": title.lower().replace(' ', ''), "user_id": user_id}
-    SEARCH_QUERY_3 = ("SELECT id,imdbID, title, year, imdbRating, poster FROM movies "
-                      "WHERE LOWER(title) LIKE :title AND user_id = :user_id")
+    SEARCH_QUERY_2 = (
+        "SELECT id,imdbID, title, year, imdbRating, poster FROM movies "
+        "WHERE REPLACE(LOWER(title),' ','') = :title AND user_id = :user_id"
+    )
+    params_2 = {"title": title.lower().replace(" ", ""), "user_id": user_id}
+    SEARCH_QUERY_3 = (
+        "SELECT id,imdbID, title, year, imdbRating, poster FROM movies "
+        "WHERE LOWER(title) LIKE :title AND user_id = :user_id"
+    )
     params_3 = {"title": f"%{title.lower()}%", "user_id": user_id}
 
     with engine.connect() as conn:
         try:
-            print(BColors.LISTING + f"Searching for movie {title} into the database" + BColors.ENDC)
+            print(
+                BColors.LISTING
+                + f"Searching for movie {title} into the database"
+                + BColors.ENDC
+            )
             if match_type == 0:
                 result = conn.execute(text(SEARCH_QUERY_0), params_0)
             elif match_type == 1:
@@ -203,5 +245,5 @@ def main():
     print(f" This/these movie(s) were found{found_movies}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
