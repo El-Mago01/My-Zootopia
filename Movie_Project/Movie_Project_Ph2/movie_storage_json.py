@@ -58,6 +58,9 @@ def store_movies(content: list) -> bool:
         except OSError as e:
             print(f"{BColors.FAIL}Could not store movie data. Please contact your "
                   f"adminstrator. \nError: {e} {BColors.ENDC}")
+            print("Here is the movie data that might be lost :")
+            for movie in content:
+                print(movie)
             return False
     return True
 
@@ -152,40 +155,55 @@ def add_movie(movie: dict, user_id: int) -> bool:
 def delete_movie(movie_id: int, title: str, user_id: int) -> bool:
     """Delete a movie from the database."""
     current_movies = fetch_movie_from_storage()
-    updated_movies = []
     if len(current_movies) == 0:  # If there is no movie yet, nothing is deleted.
         return False
 
     # pop the film to be deleted
+    movie_deleted = False
     for movie in current_movies:
         if movie[0] == movie_id:
             current_movies.remove(movie)
+            movie_deleted = True
             break
-    print(current_movies)
-    return store_movies(current_movies)
+    if movie_deleted and store_movies(current_movies):
+        print(
+            BColors.LISTING
+            + f"Movie '{title}' deleted successfully."
+            + BColors.ENDC
+        )
+        return True
+    return False
 
 
 def update_movie(movie_id: int, new_note: str, title: str) -> bool:
     """Update a movie's rating in the database."""
-    with engine.connect() as conn:
-        try:
-            print(
-                BColors.LISTING
-                + f"Updating movie {title} with ID {movie_id} from the database "
-                + f"with the following note: \n{new_note}"
-                + BColors.ENDC
-            )
-            conn.execute(
-                text("UPDATE movies SET note = :note WHERE id = :id"),
-                {"id": movie_id, "note": new_note},
-            )
-            conn.commit()
-            # print(BColors.LISTING + f"Movie '{title}' updated successfully." + BColors.ENDC)
-        # Catch any exception that can occur results in movie not stored.
-        # pylint: disable=broad-exception-caught
-        except Exception as e:
-            print(BColors.FAIL + f"Error: {e}" + BColors.ENDC)
-            return False
+    current_movies = fetch_movie_from_storage()
+    updated_movies = []
+    if len(current_movies) == 0:  # If there is no movie yet, nothing is updated.
+        return False
+
+    # Find the film to be updated
+    movie_updated = False
+    for movie in current_movies:
+        # print("movie, movie_id",movie, movie_id)
+        if movie[0] == movie_id:
+            movie[7] = new_note
+            movie_updated = True
+            break
+    if not movie_updated:
+        print(
+            BColors.WARNING
+            + f"Movie '{title}' not found. Note update failed"
+            + BColors.ENDC
+        )
+
+    if not store_movies(current_movies):
+        print(
+            BColors.WARNING
+            + f"Movies '{title}' could not be stored"
+            + BColors.ENDC
+        )
+        return False
     return True
 
 
