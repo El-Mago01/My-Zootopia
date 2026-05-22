@@ -127,8 +127,7 @@ def shorten_string(long_string: str, max_length: int, break_right: int) -> str:
     adding ... in the middle. Also check that the length of the string is not shorter
     than 36, otherwise it would result in an error when slicing the string
     """
-    # print(f"shortening string: {long_string} to max length {max_length} with
-    # break_right {break_right}")
+    # print(f"shortening string: {long_string} to max length {max_length} with break_right {break_right}")
     if long_string is None:
         return ""
     if max_length - break_right - 3 < 0:
@@ -170,50 +169,55 @@ def command_list_movies(movie_list: Optional[list] = None):
     """
     list the all available movies in the current DB or list the provided movies
     """
-
-    if (
-        movie_list is None
-    ):  # no list with movies is provided, so fetch the ones from the DB
+    # print("command_list_movies", movie_list)
+    if movie_list is None:  # no list with movies is provided, so fetch the ones from the DB
         movie_list = []
         movie_list = list(ms.fetch_movies(CURRENT_USER_ID))
+        print("THIS IS THE MOVIE LIST", movie_list)
         # Type conversion needed as list_movies returns a Sequence
-        print(BColors.LISTING + f"Showing you now {len(movie_list)} movie(s)")
+        print(BColors.LISTING + f"Showing you now {len(movie_list)} movie(s):")
         print(BColors.LISTING + f"{
                 'ID':<5}|{
                 'imdbID':<12}|{
                 'Title':<35}|{
-                    'Year':<12}|{
-                        'imdbRating':<12}|{
-                            'Poster link':<30}|{
-                                'Notes':<20}")
+                'Year':<12}|{
+                'imdbRating':<12}|{
+                'Poster link':<32}|{
+                'Notes':<32}|{
+                'Country':<32}")
         print(
             BColors.LISTING
             + "========================================================================"
-            "=============================================================="
+            "=========================================================================="
+            "================="
         )
         for movie in movie_list:
             print(BColors.LISTING + f"{
                     movie[0]:<5}|{
-                    movie[1]:<12}|{
-                    shorten_string(movie[2], 35, 6):<35}|{
-                    movie[3]:<12}|{
+                    movie[2]:<12}|{
+                    shorten_string(movie[3], 35, 6):<35}|{
                     movie[4]:<12}|{
-                    shorten_string(movie[5], 30, 6):<30}|{
-                    shorten_string(movie[6], 20, 6):<20}")
+                    movie[5]:<12}|{
+                    shorten_string(movie[6], 30, 6):<32}|{
+                    shorten_string(movie[7], 30, 6):<32}|{
+                    shorten_string(movie[8], 30, 6):<32}")
     else:  # a list with movies is provided, so show those
         try:
-            print(BColors.LISTING + f"Showing you now {len(movie_list)} movie(s)")
+            print(BColors.LISTING + f"Showing you now {len(movie_list)} movie(s).")
             print(BColors.LISTING + f"{
                     'ID':<5}|{
                     'imdbID':<12}|{
-                    'Title':<60.58}|{
+                    'Title':<35.58}|{
                     'Year':<12}|{
-                        'imdbRating':<12}|{
-                            'Poster link':<2}")
+                    'imdbRating':<12}|{
+                    'Poster link':<32}|{
+                    'Notes':<32}|{
+                    'Country':<32}")
             print(
                 BColors.LISTING
                 + "========================================================================"
-                "======================================================================"
+                  "=========================================================================="
+                  "================="
             )
             if len(movie_list) == 0:
                 print(
@@ -223,15 +227,18 @@ def command_list_movies(movie_list: Optional[list] = None):
                 return
             if isinstance(movie_list[0], tuple) or isinstance(
                 movie_list[0], sqlalchemy.engine.row.Row
-            ):
+            ) or isinstance(movie_list[0], list):
                 for movie in movie_list:
                     print(BColors.LISTING + f"{
                             movie[0]:<5}|{
-                            movie[1]:<12}|{
-                            movie[2]:<60.58}|{
-                            movie[3]:<12}|{
+                            movie[2]:<12}|{
+                            shorten_string(movie[3], 35, 6):<35}|{
                             movie[4]:<12}|{
-                            shorten_string(movie[5],30,6):<30}")
+                            movie[5]:<12}|{
+                            shorten_string(movie[6],30,6):<32}{ 
+                            shorten_string(movie[7], 30, 6):<32}|{
+                            shorten_string(movie[8], 30, 6):<32}")
+
             elif isinstance(movie_list[0], dict):
                 counter = 1
                 for movie in movie_list:
@@ -412,7 +419,7 @@ def command_add_movie() -> bool:
                     )
                 )
             except ValueError:
-                rating = 0
+                country = ""
             movie = {
                 "imdbID": selected_movie["imdbID"],
                 "Title": selected_movie["Title"],

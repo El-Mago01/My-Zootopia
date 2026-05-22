@@ -8,17 +8,23 @@ def load_html_file(file_path):
     """
     Loads the content of an HTML file and returns it as a string.
     """
-    with open(file_path, "r") as handle:
-        return handle.read()
-
+    try:
+        with open(file_path, "r") as handle:
+            return handle.read()
+    except OSError as e:
+        print("File not found, please contact your administrator.", e)
+        return ""
 
 def write_to_new_html_file(html_file, content):
     """
     Writes the given content to a new HTML file with the specified name.
     """
-    with open(html_file, "w") as f:
-        f.write(content)
-        # print(f'File stored in:{Path(__file__).parent.joinpath(f.name)}')
+    try:
+        with open(html_file, "w") as f:
+            f.write(content)
+            # print(f'File stored in:{Path(__file__).parent.joinpath(f.name)}')
+    except OSError as e:
+        print("Could not export the html file, please contact your administrator.", e)
 
 
 def scrape_for_flags(country: str) -> str:
@@ -37,7 +43,7 @@ def scrape_for_flags(country: str) -> str:
             if element[2].strip().lower() == country.strip().lower():
                 # print(f"Found country: {element[1]}, {element[2]}")
                 return element[1].strip().upper()
-    return "BE"
+    return "BE" # Because in Belgium, the fries are nice
 
 
 def generate_grid(movies: list):  # A list of tuples with the movies
@@ -85,9 +91,12 @@ def generate_website(movies, username) -> str:
     _title_ = "__TEMPLATE_TITLE__"
     _movie_grid_ = "__TEMPLATE_MOVIE_GRID__"
     content = load_html_file(template)
-    content = content.replace(_title_, page_title)
-    content = content.replace(
-        _movie_grid_, generate_grid(movies)
-    )  # we take the country of the first movie, but it should be the same for all movies of the user
-    write_to_new_html_file(movies_web_file_name, content)
-    return movies_web_file_name
+    if content != "":
+        content = content.replace(_title_, page_title)
+        content = content.replace(
+            _movie_grid_, generate_grid(movies)
+        )  # we take the country of the first movie, but it should be the same for all movies of the user
+        write_to_new_html_file(movies_web_file_name, content)
+        return movies_web_file_name
+    else:
+        return ""

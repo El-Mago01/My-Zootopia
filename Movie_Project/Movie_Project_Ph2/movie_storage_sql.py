@@ -47,11 +47,23 @@ with engine.connect() as connection:
 
 
 def fetch_all_movies():
-    """Retrieve all movies from the database."""
+    """Retrieve all movies from the database.
+    Return:
+    # Returned movie: positions per movie:
+    # 0. id
+    # 1. user_id
+    # 2. imdbID
+    # 3. Title
+    # 4. Year
+    # 5. Rating
+    # 6. Poster
+    # 7. Note
+    # 8. Country
+    """
     with engine.connect() as conn:
         result = conn.execute(
             text(
-                "SELECT id, imdbID, Title, Year, imdbRating, Poster, note, country, user_id FROM movies"
+                "SELECT id, user_id, imdbID, Title, Year, imdbRating, Poster, note, country FROM movies"
             )
         )
         movies = result.fetchall()
@@ -59,16 +71,28 @@ def fetch_all_movies():
 
 
 def fetch_movies(user_id: int):
+    # Returned movie: positions per movie:
+    # 0. id
+    # 1. user_id
+    # 2. imdbID
+    # 3. Title
+    # 4. Year
+    # 5. Rating
+    # 6. Poster
+    # 7. Note
+    # 8. Country
     """Retrieve all movies from the database that matches the user_id."""
     with engine.connect() as conn:
         result = conn.execute(
             text(
-                "SELECT id, imdbID, Title, Year, imdbRating, Poster, note, country, user_id FROM movies WHERE user_id = :user_id"
+                "SELECT id, user_id, imdbID, Title, Year, imdbRating, Poster, note, country FROM movies WHERE user_id = :user_id"
             ),
             {"user_id": user_id},
         )
         movies = result.fetchall()
-    # print(movies)
+    print("type returned by fetch_movies", type(movies))
+    print("type within movies of fetch_movies: ", type(movies[0]))
+    print("Movies from fetch_movies", movies)
     return movies
 
 
@@ -173,25 +197,36 @@ def search_movie(title: str, user_id: int, match_type: int = 0) -> dict:
     match_type 1 => exact match but case-insensitive
     match_type 2 => matching characters, but case-insensitive and stripped
     match_type 3 => fuzzy matching# pylint: disable=invalid-name
+    Return:
+    # Returned movie: positions per movie:
+    # 0. id
+    # 1. user_id
+    # 2. imdbID
+    # 3. Title
+    # 4. Year
+    # 5. Rating
+    # 6. Poster
+    # 7. Note
+    # 8. Country
     """
 
     SEARCH_QUERY_0 = (
-        "SELECT id, imdbID, title, year, imdbRating, poster FROM movies "
+        "SELECT id, user_id, imdbID, title, year, imdbRating, poster, note, country FROM movies "
         "WHERE title = :title AND user_id = :user_id"
     )
     params_0 = {"title": title, "user_id": user_id}
     SEARCH_QUERY_1 = (
-        "SELECT id,imdbID, title, year, imdbRating, poster FROM movies "
+        "SELECT id, user_id, imdbID, title, year, imdbRating, poster, note, country FROM movies "
         "WHERE LOWER(title) = :title AND user_id = :user_id"
     )
     params_1 = {"title": title.lower(), "user_id": user_id}
     SEARCH_QUERY_2 = (
-        "SELECT id,imdbID, title, year, imdbRating, poster FROM movies "
+        "SELECT id, user_id, imdbID, title, year, imdbRating, poster, note, country FROM movies "
         "WHERE REPLACE(LOWER(title),' ','') = :title AND user_id = :user_id"
     )
     params_2 = {"title": title.lower().replace(" ", ""), "user_id": user_id}
     SEARCH_QUERY_3 = (
-        "SELECT id,imdbID, title, year, imdbRating, poster FROM movies "
+        "SELECT id, user_id, imdbID, title, year, imdbRating, poster, note, country FROM movies "
         "WHERE LOWER(title) LIKE :title AND user_id = :user_id"
     )
     params_3 = {"title": f"%{title.lower()}%", "user_id": user_id}

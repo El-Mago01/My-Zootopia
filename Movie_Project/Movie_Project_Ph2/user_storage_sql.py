@@ -30,7 +30,7 @@ with engine.connect() as connection:
         CREATE TABLE IF NOT EXISTS users (
             user_id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT UNIQUE NOT NULL,
-            email_address TEXT UNIQUENOT NULL
+            email_address TEXT UNIQUE NOT NULL
         )
     """))
     connection.commit()
