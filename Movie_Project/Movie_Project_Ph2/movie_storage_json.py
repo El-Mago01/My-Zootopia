@@ -23,7 +23,7 @@ STORAGE_DIR = "data"
 MOVIE_STORAGE = os.path.join(STORAGE_DIR, "movies.json")
 
 
-def fetch_movie_from_storage():
+def fetch_movie_from_storage() -> list:
     try:
         with open(MOVIE_STORAGE, "r") as fileobj:
             content = fileobj.read()
@@ -40,12 +40,38 @@ def fetch_movie_from_storage():
     return movies
 
 
-def write_movie_to_storage(movie_data: dict) -> bool:
-    content = json.dumps(movie_data)
+def append_movie_to_storage(movie_data: list) -> bool:
+    # Storage positions:
+    # 0. id
+    # 1. user_id
+    # 2. imdbID
+    # 3. Title
+    # 4. Year
+    # 5. Rating
+    # 6. Poster
+    # 7. Note
+    # 8. Country
+    #
+
+    current_movies = fetch_movie_from_storage()
+    updated_movies = []
+    if len(current_movies) == 0: #The first movie in the DB
+        # Insert an identifier for this movie
+        movie_data.insert(0,0)
+        updated_movies.append(movie_data)
+    else:
+        # look for the last stored entry in the DB and order it based on movie_id
+        # Create and identifier by finding the last entry and add 1 to it's id
+        updated_movies = sorted(current_movies)
+        print(updated_movies)
+        new_movie_id = updated_movies[-1][0] + 1
+        movie_data.insert(0, current_movies[-1][0] + 1)
+        updated_movies.append(movie_data)
+    content_to_write = json.dumps(updated_movies)
     if os.path.exists(MOVIE_STORAGE):
         try:
-            with open(MOVIE_STORAGE, "a") as fileobj:
-                fileobj.write(content)
+            with open(MOVIE_STORAGE, "w") as fileobj:
+                fileobj.write(content_to_write)
         except OSError as e:
             print(f"{BColors.FAIL}Could not store movie data. Please contact your "
                   f"adminstrator. \nError: {e} {BColors.ENDC}")
@@ -53,7 +79,7 @@ def write_movie_to_storage(movie_data: dict) -> bool:
     else:
         try:
             with open(MOVIE_STORAGE, "w") as fileobj:
-                fileobj.write(content)
+                fileobj.write(content_to_write)
         except OSError as e:
             print(f"{BColors.FAIL}Could not store movie data. Please contact your "
                   f"adminstrator. \nError: {e} {BColors.ENDC}")
@@ -63,33 +89,42 @@ def write_movie_to_storage(movie_data: dict) -> bool:
 
 def fetch_all_movies():
     """Retrieve all movies from the JSON archive."""
-    # with engine.connect() as conn:
-    #     result = conn.execute(
-    #         text(
-    #             "SELECT id, imdbID, Title, Year, imdbRating, Poster, note, country, user_id FROM movies"
-    #         )
-    #     )
-    #     movies = result.fetchall()
+    # Returned movie: positions per movie:
+
+    # 0. id
+    # 1. user_id
+    # 2. imdbID
+    # 3. Title
+    # 4. Year
+    # 5. Rating
+    # 6. Poster
+    # 7. Note
+    # 8. Country
     available_movies = fetch_movie_from_storage()
     return available_movies
 
 
 def fetch_movies(user_id: int):
-    # """Retrieve all movies from the database that matches the user_id."""
-    # with engine.connect() as conn:
-    #     result = conn.execute(
-    #         text(
-    #             "SELECT id, imdbID, Title, Year, imdbRating, Poster, note, country, user_id FROM movies WHERE user_id = :user_id"
-    #         ),
-    #         {"user_id": user_id},
-    #     )
-    #     movies = result.fetchall()
+    # Returned movie: positions per movie:
+    # 0. id
+    # 1. user_id
+    # 2. imdbID
+    # 3. Title
+    # 4. Year
+    # 5. Rating
+    # 6. Poster
+    # 7. Note
+    # 8. Country
     movies = []
     available_movies = fetch_movie_from_storage()
+    print("Fetching the movies for: ", user_id)
     for movie in available_movies:
-        if movie["user_id"] == user_id:
+
+        print(movie[1])
+        if movie[1] == user_id:
             movies.append(movie)
     return movies
+
 
 
 # pylint: disable=invalid-name
@@ -97,12 +132,18 @@ def add_movie(movie: dict, user_id: int) -> bool:
     """Add a movie to the database."""
     print("Movie to add", movie)
     print("for user", user_id)
+    movie_list = [
+    user_id,
+    movie["imdbID"],
+    movie["Title"],
+    movie["Year"],
+    movie["Rating"],
+    movie["Poster"],
+    "", #The Note, can be used later
+    movie["Country"]
+    ]
 
-    movie_dict = {
-        "user_id": user_id,
-        "movie" : movie
-    }
-    return write_movie_to_storage(movie_dict)
+    return append_movie_to_storage(movie_list)
 
 
 def delete_movie(movie_id: int, title: str, user_id: int) -> bool:
@@ -155,7 +196,7 @@ def update_movie(movie_id: int, new_note: str, title: str) -> bool:
     return True
 
 
-def search_movie(title: str, user_id: int, match_type: int = 0) -> dict:
+def search_movie(title: str, user_id: int, match_type: int = 0) -> list:
     """
     Search for a movie from the JSON database.
 
@@ -166,54 +207,35 @@ def search_movie(title: str, user_id: int, match_type: int = 0) -> dict:
     match_type 2 => matching characters, but case-insensitive and stripped
     match_type 3 => fuzzy matching# pylint: disable=invalid-name
     """
+    all_user_movies = fetch_movies(user_id)
+    print(all_user_movies)
+    found_movies = []
+    for movie in all_user_movies:
+        movie_tuple = (
+            movie[0],
+            movie[2],
+            movie[3],
+            movie[4],
+            movie[5],
+            movie[6],
+            movie[7],
+            movie[8]
+                )
+        if match_type == 0:
+            if movie[3] == title:
+                found_movies.append(movie_tuple)
+        if match_type == 1:
+            if movie[3].lower() == title.lower():
+                found_movies.append(movie_tuple)
+        if match_type == 2:
+            if title.lower() in movie[3].lower().strip():
+                found_movies.append(movie_tuple)
+        if match_type == 3:
+            if title.lower() in movie[3].lower().strip():
+                found_movies.append(movie_tuple)
+    print(f"the search function will return this: {found_movies}")
 
-    SEARCH_QUERY_0 = (
-        "SELECT id, imdbID, title, year, imdbRating, poster FROM movies "
-        "WHERE title = :title AND user_id = :user_id"
-    )
-    params_0 = {"title": title, "user_id": user_id}
-    SEARCH_QUERY_1 = (
-        "SELECT id,imdbID, title, year, imdbRating, poster FROM movies "
-        "WHERE LOWER(title) = :title AND user_id = :user_id"
-    )
-    params_1 = {"title": title.lower(), "user_id": user_id}
-    SEARCH_QUERY_2 = (
-        "SELECT id,imdbID, title, year, imdbRating, poster FROM movies "
-        "WHERE REPLACE(LOWER(title),' ','') = :title AND user_id = :user_id"
-    )
-    params_2 = {"title": title.lower().replace(" ", ""), "user_id": user_id}
-    SEARCH_QUERY_3 = (
-        "SELECT id,imdbID, title, year, imdbRating, poster FROM movies "
-        "WHERE LOWER(title) LIKE :title AND user_id = :user_id"
-    )
-    params_3 = {"title": f"%{title.lower()}%", "user_id": user_id}
-
-    with engine.connect() as conn:
-        try:
-            print(
-                BColors.LISTING
-                + f"Searching for movie {title} into the database"
-                + BColors.ENDC
-            )
-            if match_type == 0:
-                result = conn.execute(text(SEARCH_QUERY_0), params_0)
-            elif match_type == 1:
-                result = conn.execute(text(SEARCH_QUERY_1), params_1)
-            elif match_type == 2:
-                result = conn.execute(text(SEARCH_QUERY_2), params_2)
-            elif match_type == 3:
-                result = conn.execute(text(SEARCH_QUERY_3), params_3)
-            else:
-                raise ReferenceError("Search function not implemented")
-            conn.commit()
-        # pylint: disable=broad-exception-caught
-        # Any type of connection failure is caught
-        except Exception as e:
-            print(BColors.FAIL + f"Error: {e}" + BColors.ENDC)
-            return {}
-        res = result.fetchall()
-        print(f"the search function will return this: {res}")
-    return res
+    return found_movies
 
 
 def main():
