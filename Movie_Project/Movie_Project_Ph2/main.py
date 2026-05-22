@@ -681,10 +681,10 @@ def command_show_stats():
         + "Showing you now the statistics of all movies in the DB"
         + BColors.ENDC
     )
-    print(BColors.LISTING + f"Average imdbRating : {average_rating}" + BColors.ENDC)
-    print(BColors.LISTING + f"Median imdbRating  : {median_rating}" + BColors.ENDC)
-    print(BColors.LISTING + f"Best movie         : {best}, {max_rat}" + BColors.ENDC)
-    print(BColors.LISTING + f"Worst movie        : {worst}, {min_rat}" + BColors.ENDC)
+    print(BColors.LISTING + f"Average imdbRating : {average_rating:.1f}" + BColors.ENDC)
+    print(BColors.LISTING + f"Median imdbRating  : {median_rating:.1f}" + BColors.ENDC)
+    print(BColors.LISTING + f"Best movie         : {best}, {max_rat:.1f}" + BColors.ENDC)
+    print(BColors.LISTING + f"Worst movie        : {worst}, {min_rat:.1f}" + BColors.ENDC)
     print(BColors.ENDC)
 
 
@@ -753,6 +753,66 @@ def command_search_movie():
     movies_found = search_title(title, 3)
 
     command_list_movies(movies_found)
+
+def command_filter_movie():
+    def get_user_input():
+        while True:
+            m_rating = input("What is the minimum rating: ").strip()
+            if len(m_rating) == 0:
+                m_rating = 0
+                break
+            try:
+                m_rating = float(m_rating)
+                break
+            except ValueError:
+                print("please enter a number or press enter: ")
+        while True:
+            while True:
+                s_year = input("What is the starting year: ").strip()
+                if len(s_year) == 0:
+                    s_year=1850
+                    break
+                try:
+                    s_year = int(s_year)
+                    break
+                except ValueError:
+                    print("please enter a number or press enter: ")
+            while True:
+                e_year = input("What is the ending year: ").strip()
+                if len(e_year) == 0:
+                    e_year=3001
+                    break
+                try:
+                    e_year = int(e_year)
+                    break
+                except ValueError:
+                    print("please enter a number or press enter: ")
+            if e_year >= s_year:
+                break
+            else:
+                print("Please ensure ending year is larger than starting year")
+        return m_rating, s_year, e_year
+
+    min_rating, start_year, end_year = get_user_input()
+
+    all_movies = ms.fetch_all_movies()
+    filtered_movies = []
+    for movie in all_movies:
+        try:
+            if '-' in movie[4]:
+                from_year, to_year = movie[4].split('-')
+                to_year = int(to_year)
+            elif '–' in movie[4]:
+                from_year, to_year = movie[4].split('–')
+                to_year = int(to_year)
+            else:
+                to_year = int(movie[4])
+        except ValueError:
+            print(f"The movie {movie[3]}, has an uncompatible format for year: {movie[4]}")
+            return
+        if movie[5] >= min_rating and end_year >= to_year >= start_year:
+            filtered_movies.append(movie)
+    command_list_movies(filtered_movies)
 
 
 def command_sort_by_year(direction: str = "descending") -> list:
@@ -1100,15 +1160,16 @@ FUNCTIONS = {
     6: (command_show_stats, "Show movie statistics"),
     7: (command_random_movie, "Select a movie randomly"),
     8: (command_search_movie, "Search by title"),
-    9: (command_sort_by_rating, "Movies sorted by rating"),
-    10: (command_sort_by_year, "Movies sorted by year"),
-    11: (command_create_rating_histogram, "Create rating histogram"),
-    12: (command_generate_webstie, "Generate the website"),
-    13: (command_update_user_profile, "Update user profile"),
-    14: (command_select_user, "Switch user"),
-    15: (command_create_new_user, "Add user"),
-    16: (command_list_users, "List users"),
-    17: (command_delete_user, "Delete user"),
+    9: (command_filter_movie, "filter movies: by year / rating"),
+    10: (command_sort_by_rating, "Movies sorted by rating"),
+    11: (command_sort_by_year, "Movies sorted by year"),
+    12: (command_create_rating_histogram, "Create rating histogram"),
+    13: (command_generate_webstie, "Generate the website"),
+    14: (command_update_user_profile, "Update user profile"),
+    15: (command_select_user, "Switch user"),
+    16: (command_create_new_user, "Add user"),
+    17: (command_list_users, "List users"),
+    18: (command_delete_user, "Delete user"),
     0: (command_quit, "Exit"),
 }
 
