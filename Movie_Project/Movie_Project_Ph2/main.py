@@ -229,6 +229,7 @@ def command_list_movies(movie_list: Optional[list] = None):
                 movie_list[0], sqlalchemy.engine.row.Row
             ) or isinstance(movie_list[0], list):
                 for movie in movie_list:
+                    # print("This movie will be plotted: ", movie)
                     print(BColors.LISTING + f"{
                             movie[0]:<5}|{
                             movie[2]:<12}|{
