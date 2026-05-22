@@ -1,6 +1,6 @@
-# import sqlite3
 from pathlib import Path
-from sqlalchemy import create_engine, text
+import os
+import json
 
 
 class BColors:
@@ -19,98 +19,90 @@ class BColors:
     UNDERLINE = "\033[4m"
 
 
-# Define the database URL
-BASE_DIR = Path(__file__).resolve().parent
-DB_PATH = BASE_DIR / "data" / "movies.db"
-DB_URL = f"sqlite:///{DB_PATH.as_posix()}"
-DEBUG = True
-# Create the engine
-# engine = create_engine(DB_URL, echo=DEBUG)
-engine = create_engine(DB_URL)
-
-# Create the movies table if it does not exist
-with engine.connect() as connection:
-    connection.execute(text("""
-        CREATE TABLE IF NOT EXISTS movies (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            imdbID TEXT NOT NULL,
-            title TEXT NOT NULL,
-            year TEXT NOT NULL,
-            imdbRating REAL NOT NULL,
-            poster TEXT,
-            note TEXT,
-            country TEXT
-        )
-    """))
-    connection.commit()
+STORAGE_DIR = "data"
+MOVIE_STORAGE = os.path.join(STORAGE_DIR, "movies.json")
 
 
-def fetch_all_movies():
-    """Retrieve all movies from the database."""
-    with engine.connect() as conn:
-        result = conn.execute(
-            text(
-                "SELECT id, imdbID, Title, Year, imdbRating, Poster, note, country, user_id FROM movies"
-            )
-        )
-        movies = result.fetchall()
+def fetch_movie_from_storage():
+    try:
+        with open(MOVIE_STORAGE, "r") as fileobj:
+            content = fileobj.read()
+        if content:
+            movies = json.loads(content)
+        else:
+            movies = []
+    except FileNotFoundError as e:
+        movies = []
+    except OSError as e:
+        print(f"{BColors.FAIL}Could not store movie data. Please contact your "
+              f"adminstrator. \nError: {e} {BColors.ENDC}")
+        movies = []
     return movies
 
 
+def write_movie_to_storage(movie_data: dict) -> bool:
+    content = json.dumps(movie_data)
+    if os.path.exists(MOVIE_STORAGE):
+        try:
+            with open(MOVIE_STORAGE, "a") as fileobj:
+                fileobj.write(content)
+        except OSError as e:
+            print(f"{BColors.FAIL}Could not store movie data. Please contact your "
+                  f"adminstrator. \nError: {e} {BColors.ENDC}")
+            return False
+    else:
+        try:
+            with open(MOVIE_STORAGE, "w") as fileobj:
+                fileobj.write(content)
+        except OSError as e:
+            print(f"{BColors.FAIL}Could not store movie data. Please contact your "
+                  f"adminstrator. \nError: {e} {BColors.ENDC}")
+            return False
+    return True
+
+
+def fetch_all_movies():
+    """Retrieve all movies from the JSON archive."""
+    # with engine.connect() as conn:
+    #     result = conn.execute(
+    #         text(
+    #             "SELECT id, imdbID, Title, Year, imdbRating, Poster, note, country, user_id FROM movies"
+    #         )
+    #     )
+    #     movies = result.fetchall()
+    available_movies = fetch_movie_from_storage()
+    return available_movies
+
+
 def fetch_movies(user_id: int):
-    """Retrieve all movies from the database that matches the user_id."""
-    with engine.connect() as conn:
-        result = conn.execute(
-            text(
-                "SELECT id, imdbID, Title, Year, imdbRating, Poster, note, country, user_id FROM movies WHERE user_id = :user_id"
-            ),
-            {"user_id": user_id},
-        )
-        movies = result.fetchall()
-    # print(movies)
+    # """Retrieve all movies from the database that matches the user_id."""
+    # with engine.connect() as conn:
+    #     result = conn.execute(
+    #         text(
+    #             "SELECT id, imdbID, Title, Year, imdbRating, Poster, note, country, user_id FROM movies WHERE user_id = :user_id"
+    #         ),
+    #         {"user_id": user_id},
+    #     )
+    #     movies = result.fetchall()
+    movies = []
+    available_movies = fetch_movie_from_storage()
+    for movie in available_movies:
+        if movie["user_id"] == user_id:
+            movies.append(movie)
     return movies
 
 
 # pylint: disable=invalid-name
 def add_movie(movie: dict, user_id: int) -> bool:
     """Add a movie to the database."""
+    print("Movie to add", movie)
+    print("for user", user_id)
 
-    imdbID = movie["imdbID"]
-    title = movie["Title"]
-    year = movie["Year"]
-    rating = movie["Rating"]
-    poster = movie["Poster"]
-    country = movie["Country"]
-    with engine.connect() as conn:
-        try:
-            print(BColors.LISTING + f"Inserting movie {title} into the database")
-            params = {
-                "user_id": user_id,
-                "imdbID": imdbID,
-                "title": title,
-                "year": year,
-                "rating": rating,
-                "poster": poster,
-                "country": country,
-            }
-            conn.execute(
-                text(
-                    "INSERT INTO movies (user_id, imdbID, Title, Year, imdbRating, Poster, Country) "
-                    "VALUES (:user_id, :imdbID, :title, :year, :rating, :poster, :country)"
-                ),
-                params,
-            )
-            conn.commit()
-            # print(BColors.LISTING + f"Movie '{title}' added successfully." + BColors.ENDC)
-            return True
-        # Catch any exception that can occur results in movie not stored.
-        # pylint: disable=broad-exception-caught
-        except Exception as e:
-            print(
-                BColors.FAIL + f"Error during storage of the movie: {e}" + BColors.ENDC
-            )
-            return False
+    movie_dict = {
+        "user_id": user_id,
+        "movie" : movie
+    }
+    return write_movie_to_storage(movie_dict)
 
 
 def delete_movie(movie_id: int, title: str, user_id: int) -> bool:
@@ -165,7 +157,7 @@ def update_movie(movie_id: int, new_note: str, title: str) -> bool:
 
 def search_movie(title: str, user_id: int, match_type: int = 0) -> dict:
     """
-    Search for a movie from the database.
+    Search for a movie from the JSON database.
 
     searches for movies in the dict using the search_string and 4 variants
     expressed by match_type (int)
@@ -235,16 +227,19 @@ def main():
     # found_movies=search_movie("The hulk",1)
     # print(f" This/these movie(s) were found{found_movies}")
 
-    found_movies = search_movie("    The    hulk   ", 1, 2)
-    print(f" This/these movie(s) were found{found_movies}")
+    all_movies = fetch_all_movies()
+    print(all_movies)
 
-    found_movies = search_movie("hulk", 1, 3)
-    print(f" This/these movie(s) were found{found_movies}")
-    for movie in found_movies:
-        print(type(movie))
-    found_movies = search_movie("Bee Bulk", 1, 1)
-    print(f" This/these movie(s) were found{found_movies}")
-    print(type(found_movies))
+    # found_movies = search_movie("    The    hulk   ", 1, 2)
+    # print(f" This/these movie(s) were found{found_movies}")
+    #
+    # found_movies = search_movie("hulk", 1, 3)
+    # print(f" This/these movie(s) were found{found_movies}")
+    # for movie in found_movies:
+    #     print(type(movie))
+    # found_movies = search_movie("Bee Bulk", 1, 1)
+    # print(f" This/these movie(s) were found{found_movies}")
+    # print(type(found_movies))
 
 
 
