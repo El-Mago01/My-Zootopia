@@ -22,9 +22,10 @@ import matplotlib.pyplot as plt
 import matplotlib
 import sqlalchemy
 import movie_detail_fetcher as mdf
-import movie_storage_sql as mss
 import user_storage_sql as uss
+import movie_storage as ms
 import web_generator as wg
+
 
 matplotlib.use("Agg")
 
@@ -51,6 +52,10 @@ class BColors:
     ENDC = "\033[0m"
     BOLD = "\033[1m"
     UNDERLINE = "\033[4m"
+
+class MovieStorageError(Exception):
+    """Raised when a movie can not be stored in the movie storage."""
+    pass
 
 
 CURRENT_USER_ID = -1
@@ -152,7 +157,7 @@ def command_list_all_movies():
     """
     list the all available movies in the current DB
     """
-    movies = mss.list_all_movies()
+    movies = ms.fetch_all_movies()
     print(BColors.LISTING + "Showing you now all movies in the DB")
     command_list_movies(movies)
 
@@ -170,7 +175,7 @@ def command_list_movies(movie_list: Optional[list] = None):
         movie_list is None
     ):  # no list with movies is provided, so fetch the ones from the DB
         movie_list = []
-        movie_list = list(mss.list_movies(CURRENT_USER_ID))
+        movie_list = list(ms.fetch_movies(CURRENT_USER_ID))
         # Type conversion needed as list_movies returns a Sequence
         print(BColors.LISTING + f"Showing you now {len(movie_list)} movie(s)")
         print(BColors.LISTING + f"{
@@ -420,16 +425,17 @@ def command_add_movie() -> bool:
         # User pressed ENTER to abort
         return {}
 
+
     def add_the_movie(movie: dict) -> None:
         print(BColors.LISTING + "Storing the movie...")
         try:
-            if not mss.add_movie(movie, CURRENT_USER_ID):
-                raise sqlite3.IntegrityError(
+            if not ms.add_movie(movie, CURRENT_USER_ID):
+                raise MovieStorageError(
                     BColors.WARNING + "Movie could not be "
                     "stored. Check if the imdbID is not stored already...."
                 )
             print(BColors.LISTING + f"Movie '{movie['Title']}' successfully added.")
-        except sqlite3.IntegrityError as error:
+        except MovieStorageError as error:
             print(
                 BColors.WARNING
                 + f"Movie {movie['Title']} not "
@@ -444,7 +450,8 @@ def command_add_movie() -> bool:
     new_movie = enter_correct_movie_input()
     if len(new_movie) != 0:  # A valid imdbID was provided
         if len(new_movie["Title"]) != 0:
-            movies_found = search_title(new_movie["Title"], 3)
+            # movies_found = search_title(new_movie["Title"], 3)
+            movies_found = ""
             if len(movies_found) == 0:
                 add_the_movie(new_movie)
             else:
@@ -562,7 +569,7 @@ def command_delete_movie() -> bool:
     if len(selected_movie) == 0:
         print(BColors.WARNING + "Delete aborted!" + BColors.ENDC)
         return False
-    if mss.delete_movie(
+    if ms.delete_movie(
         selected_movie[0], selected_movie[2], CURRENT_USER_ID
     ):  # check if the deletion was successful
         print(
@@ -604,7 +611,7 @@ def command_update_movie() -> bool:
     if new_note == "":
         print(BColors.WARNING + "Update aborted!" + BColors.ENDC)
         return False
-    if mss.update_movie(selected_movie[0], new_note, selected_movie[2]):
+    if ms.update_movie(selected_movie[0], new_note, selected_movie[2]):
         # check if the update was successful
         print(f"Movie {
                 selected_movie[2]} with ID{
@@ -654,7 +661,7 @@ def command_show_stats():
     # =======================================================================
 
     rating_list = []
-    movies = mss.list_all_movies()
+    movies = ms.fetch_all_movies()
     for movie in movies:
         rating_list.append(movie[4])
     # print(BColors.LISTING + f"Rating_list: {rating_list}" + BColors.ENDC)
@@ -678,7 +685,7 @@ def command_random_movie() -> tuple:
     selects a random movie and returns a tuple including the movie title and it's imdbRating
     """
     # Your movie for tonight: Star Wars: Episode V, it's rated 8.7
-    movies = mss.list_all_movies()
+    movies = ms.fetch_all_movies()
     random_movie = random.choice(movies)
     print(BColors.LISTING + f"Your movie for tonight: {
             random_movie[2]}, it's rated {
@@ -719,7 +726,7 @@ def search_title(search_string, match_type: int = 0) -> list:
                 BColors.FAIL + "search function does not exist with that match_type"
             )
         movies_found = list(
-            mss.search_movie(search_string, CURRENT_USER_ID, match_type)
+            ms.search_movie(search_string, CURRENT_USER_ID, match_type)
         )
     except ReferenceError:
         print(BColors.WARNING + "Movie not found" + BColors.ENDC)
@@ -750,7 +757,7 @@ def command_sort_by_rating(direction: str = "descending") -> list:
     :param match_type:
     :return:
     """
-    movie_list = mss.list_movies(CURRENT_USER_ID)
+    movie_list = ms.fetch_movies(CURRENT_USER_ID)
 
     descending = direction == "descending"
     # same as if direction == "descending": descending = True else False
@@ -779,7 +786,7 @@ def command_create_rating_histogram():
     import matplotlib.pyplot as plt
     """
     rating_list = []
-    movies = mss.list_all_movies()
+    movies = ms.fetch_all_movies()
     for movie in movies:
         rating_list.append(movie[4])
     plt.hist(rating_list)
@@ -796,7 +803,7 @@ def command_generate_webstie():
     """
     Generates a website with all the movies of the user, using the web_generator module
     """
-    movies_this_user = mss.list_movies(CURRENT_USER_ID)
+    movies_this_user = ms.fetch_movies(CURRENT_USER_ID)
     print(
         BColors.LISTING
         + f"Generating website with all your movies ({len(movies_this_user)})..."
@@ -994,9 +1001,9 @@ def command_delete_user():
     """
 
     def delete_all_movies_of_user(user_id: int):
-        movies = mss.list_movies(user_id)
+        movies = ms.fetch_movies(user_id)
         for movie in movies:
-            mss.delete_movie(movie[0], movie[2], user_id)
+            ms.delete_movie(movie[0], movie[2], user_id)
 
     global CURRENT_USER_ID, CURRENT_USERNAME
     users = uss.list_users()
@@ -1057,7 +1064,7 @@ Function Dispatch Dictionary
 """
 FUNCTIONS = {
     1: (command_list_movies, "List all my movies"),
-    2: (command_list_all_movies, "List all movies in the database"),
+    2: (command_list_all_movies, "List all movies of all users"),
     3: (command_add_movie, "Add movie"),
     4: (command_delete_movie, "Delete movie"),
     5: (command_update_movie, "Update movie with a note"),
