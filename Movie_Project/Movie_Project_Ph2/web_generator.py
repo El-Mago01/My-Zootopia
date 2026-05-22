@@ -53,8 +53,8 @@ def generate_grid(movies: list):  # A list of tuples with the movies
     grid = ""
 
     for movie in movies:
-        if movie[7] is not None:  # if there is a country for the movie
-            countries = movie[7].split(
+        if movie[8] is not None:  # if there is a country for the movie
+            countries = movie[8].split(
                 ","
             )  # in case there are multiple countries for a movie, we take both countries
             country_codes = []
@@ -63,8 +63,8 @@ def generate_grid(movies: list):  # A list of tuples with the movies
         grid += f"""
             <li>
             <div class="movie">
-                <a href="https://www.imdb.com/title/{movie[1]}/" target="_blank">
-                <img class="movie-poster" title="{movie[6]}" src="{movie[5]}" alt="{movie[2]} poster">
+                <a href="https://www.imdb.com/title/{movie[2]}/" target="_blank">
+                <img class="movie-poster" title="{movie[7]}" src="{movie[6]}" alt="{movie[7]} poster">
                 </a>
                 """
         for country_code in country_codes:
@@ -72,14 +72,13 @@ def generate_grid(movies: list):  # A list of tuples with the movies
                 <img class="flag" src="https://flagsapi.com/{country_code.upper()}/shiny/64.png" alt="{country_code.upper()} flag">
                 """
         grid += f"""
-                <div class="movie-title">{movie[2]}</div>
-                <div class="movie-year">{movie[3]}</div>
-                <div class="movie-rating">IMDB-Rating: {movie[4]}</div>
+                <div class="movie-title">{movie[3]}</div>
+                <div class="movie-year">{movie[4]}</div>
+                <div class="movie-rating">IMDB-Rating: {movie[5]}</div>
                 </div>
                 </li>
             """
     return grid
-
 
 def generate_website(movies, username) -> str:
     """

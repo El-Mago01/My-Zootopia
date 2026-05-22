@@ -4,7 +4,7 @@ import movie_storage_json as msj
 STORAGE = {"SQL" : "SQL",
            "JSON" : "JSON"
            }
-SELECTED_STORAGE = STORAGE["SQL"]
+SELECTED_STORAGE = STORAGE["JSON"]
 
 
 def fetch_all_movies():

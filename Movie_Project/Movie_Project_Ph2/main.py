@@ -651,12 +651,12 @@ def command_show_stats():
         worst_movie = ""
         best_movie = ""
         for movie in movies:
-            if movie[4] == min_rating:
+            if movie[5] == min_rating:
                 # in case 2 or more movies have the worst imdbRating
-                worst_movie += movie[2] + " + "
-            if movie[4] == max_rating:
+                worst_movie += movie[3] + " + "
+            if movie[5] == max_rating:
                 # in case 2 or more movies have the best imdbRating
-                best_movie += movie[2] + " + "
+                best_movie += movie[3] + " + "
         if best_movie == "":
             best_movie = "Not found + "
         if worst_movie == "":
@@ -671,7 +671,7 @@ def command_show_stats():
     rating_list = []
     movies = ms.fetch_all_movies()
     for movie in movies:
-        rating_list.append(movie[4])
+        rating_list.append(movie[5])
     # print(BColors.LISTING + f"Rating_list: {rating_list}" + BColors.ENDC)
     average_rating = statistics.mean(rating_list)
     median_rating = statistics.median(rating_list)
@@ -696,8 +696,8 @@ def command_random_movie() -> tuple:
     movies = ms.fetch_all_movies()
     random_movie = random.choice(movies)
     print(BColors.LISTING + f"Your movie for tonight: {
-            random_movie[2]}, it's rated {
-            random_movie[4]}.")
+            random_movie[3]}, it's rated {
+            random_movie[5]}.")
     return random_movie
 
 
@@ -769,7 +769,7 @@ def command_sort_by_rating(direction: str = "descending") -> list:
 
     descending = direction == "descending"
     # same as if direction == "descending": descending = True else False
-    sorted_list = sorted(movie_list, key=lambda tup: tup[4], reverse=descending)
+    sorted_list = sorted(movie_list, key=lambda tup: tup[5], reverse=descending)
     print(
         BColors.LISTING
         + f"Showing you now all movies in the DB for {CURRENT_USERNAME} sorted by rating in {direction}"

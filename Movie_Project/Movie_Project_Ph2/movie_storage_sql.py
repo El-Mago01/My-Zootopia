@@ -90,9 +90,7 @@ def fetch_movies(user_id: int):
             {"user_id": user_id},
         )
         movies = result.fetchall()
-    print("type returned by fetch_movies", type(movies))
-    print("type within movies of fetch_movies: ", type(movies[0]))
-    print("Movies from fetch_movies", movies)
+
     return movies
 
 
