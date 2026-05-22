@@ -755,6 +755,27 @@ def command_search_movie():
     command_list_movies(movies_found)
 
 
+def command_sort_by_year(direction: str = "descending") -> list:
+    """
+    orders the list using the "sorted" function with one-liner function for key
+    the anonymous one-liner function key=lambda tup: tup[4] ensures the sorting on the year
+    the function returns the sorted list ascending or descending, based upon input
+    parameter 'direction'
+    :param movies
+    :param match_type:
+    :return:
+    """
+    movie_list = ms.fetch_movies(CURRENT_USER_ID)
+
+    descending = direction == "descending"
+    # same as if direction == "descending": descending = True else False
+    sorted_list = sorted(movie_list, key=lambda tup: tup[4], reverse=descending)
+    print(
+        BColors.LISTING
+        + f"Showing you now all movies in the DB for {CURRENT_USERNAME} sorted by year in {direction}"
+    )
+    command_list_movies(sorted_list)
+
 def command_sort_by_rating(direction: str = "descending") -> list:
     """
     orders the list using the "sorted" function with one-liner function for key
@@ -1080,13 +1101,14 @@ FUNCTIONS = {
     7: (command_random_movie, "Select a movie randomly"),
     8: (command_search_movie, "Search by title"),
     9: (command_sort_by_rating, "Movies sorted by rating"),
-    10: (command_create_rating_histogram, "Create rating histogram"),
-    11: (command_generate_webstie, "Generate the website"),
-    12: (command_update_user_profile, "Update user profile"),
-    13: (command_select_user, "Switch user"),
-    14: (command_create_new_user, "Add user"),
-    15: (command_list_users, "List users"),
-    16: (command_delete_user, "Delete user"),
+    10: (command_sort_by_year, "Movies sorted by year"),
+    11: (command_create_rating_histogram, "Create rating histogram"),
+    12: (command_generate_webstie, "Generate the website"),
+    13: (command_update_user_profile, "Update user profile"),
+    14: (command_select_user, "Switch user"),
+    15: (command_create_new_user, "Add user"),
+    16: (command_list_users, "List users"),
+    17: (command_delete_user, "Delete user"),
     0: (command_quit, "Exit"),
 }
 
