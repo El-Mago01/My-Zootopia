@@ -40,34 +40,9 @@ def fetch_movie_from_storage() -> list:
     return movies
 
 
-def append_movie_to_storage(movie_data: list) -> bool:
-    # Storage positions:
-    # 0. id
-    # 1. user_id
-    # 2. imdbID
-    # 3. Title
-    # 4. Year
-    # 5. Rating
-    # 6. Poster
-    # 7. Note
-    # 8. Country
-    #
-
-    current_movies = fetch_movie_from_storage()
-    updated_movies = []
-    if len(current_movies) == 0: #The first movie in the DB
-        # Insert an identifier for this movie
-        movie_data.insert(0,0)
-        updated_movies.append(movie_data)
-    else:
-        # look for the last stored entry in the DB and order it based on movie_id
-        # Create and identifier by finding the last entry and add 1 to it's id
-        updated_movies = sorted(current_movies)
-        print(updated_movies)
-        new_movie_id = updated_movies[-1][0] + 1
-        movie_data.insert(0, current_movies[-1][0] + 1)
-        updated_movies.append(movie_data)
-    content_to_write = json.dumps(updated_movies)
+def store_movies(content: list) -> bool:
+    """Store movie data in the JSON archive."""
+    content_to_write = json.dumps(content)
     if os.path.exists(MOVIE_STORAGE):
         try:
             with open(MOVIE_STORAGE, "w") as fileobj:
@@ -85,6 +60,35 @@ def append_movie_to_storage(movie_data: list) -> bool:
                   f"adminstrator. \nError: {e} {BColors.ENDC}")
             return False
     return True
+
+def append_movie_to_storage(movie_data: list) -> bool:
+    # Storage positions:
+    # 0. id
+    # 1. user_id
+    # 2. imdbID
+    # 3. Title
+    # 4. Year
+    # 5. Rating
+    # 6. Poster
+    # 7. Note
+    # 8. Country
+
+    current_movies = fetch_movie_from_storage()
+    updated_movies = []
+    if len(current_movies) == 0: #The first movie in the DB
+        # Insert an identifier for this movie
+        movie_data.insert(0,0)
+        updated_movies.append(movie_data)
+    else:
+        # look for the last stored entry in the DB and order it based on movie_id
+        # Create and identifier by finding the last entry and add 1 to it's id
+        updated_movies = sorted(current_movies)
+        print(updated_movies)
+        new_movie_id = updated_movies[-1][0] + 1
+        movie_data.insert(0, current_movies[-1][0] + 1)
+        updated_movies.append(movie_data)
+    return store_movies(updated_movies)
+
 
 
 def fetch_all_movies():
@@ -133,43 +137,32 @@ def add_movie(movie: dict, user_id: int) -> bool:
     print("Movie to add", movie)
     print("for user", user_id)
     movie_list = [
-    user_id,
-    movie["imdbID"],
-    movie["Title"],
-    movie["Year"],
-    movie["Rating"],
-    movie["Poster"],
-    "", #The Note, can be used later
-    movie["Country"]
+        user_id,
+        movie["imdbID"],
+        movie["Title"],
+        movie["Year"],
+        movie["Rating"],
+        movie["Poster"],
+        "", #The Note, can be used later
+        movie["Country"]
     ]
-
     return append_movie_to_storage(movie_list)
 
 
 def delete_movie(movie_id: int, title: str, user_id: int) -> bool:
     """Delete a movie from the database."""
-    with engine.connect() as conn:
-        try:
-            print(
-                BColors.LISTING
-                + f"Deleting movie {title} with ID {movie_id} from the database for user_id {user_id}"
-            )
-            conn.execute(
-                text("DELETE FROM movies WHERE ID = :id AND user_id = :user_id"),
-                {"id": movie_id, "user_id": user_id},
-            )
-            conn.commit()
-            print(
-                BColors.LISTING
-                + f"Movie '{title}' deleted successfully."
-                + BColors.ENDC
-            )
-        # Catch any exception that can occur results in movie not stored.
-        # pylint: disable=broad-exception-caught
-        except Exception as e:
-            print(BColors.FAIL + f"Error: {e}" + BColors.ENDC)
-            return False
-    return True
+    current_movies = fetch_movie_from_storage()
+    updated_movies = []
+    if len(current_movies) == 0:  # If there is no movie yet, nothing is deleted.
+        return False
+
+    # pop the film to be deleted
+    for movie in current_movies:
+        if movie[0] == movie_id:
+            current_movies.remove(movie)
+            break
+    print(current_movies)
+    return store_movies(current_movies)
 
 
 def update_movie(movie_id: int, new_note: str, title: str) -> bool:
@@ -213,6 +206,7 @@ def search_movie(title: str, user_id: int, match_type: int = 0) -> list:
     for movie in all_user_movies:
         movie_tuple = (
             movie[0],
+            movie[1],
             movie[2],
             movie[3],
             movie[4],
