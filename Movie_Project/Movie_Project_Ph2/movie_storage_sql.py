@@ -1,22 +1,7 @@
 # import sqlite3
 from pathlib import Path
 from sqlalchemy import create_engine, text
-
-
-class BColors:
-    """Utility class to represent colors on the terminal."""
-
-    HEADER = "\033[95m"
-    MENU_TEXT = "\033[94m"
-    OKCYAN = "\033[96m"
-    INPUT_TEXT = "\033[92m"
-    WARNING = "\033[93m"
-    BLINKING = "\033[5m"
-    FAIL = "\033[91m"
-    LISTING = "\033[0m"
-    ENDC = "\033[0m"
-    BOLD = "\033[1m"
-    UNDERLINE = "\033[4m"
+from user_interface import Bcolors
 
 
 # Define the database URL
@@ -71,6 +56,10 @@ def fetch_all_movies():
 
 
 def fetch_movies(user_id: int):
+
+    """Retrieve all movies from the database that matches the user_id.
+    param: user_id: User ID
+    Return:
     # Returned movie: positions per movie:
     # 0. id
     # 1. user_id
@@ -81,7 +70,7 @@ def fetch_movies(user_id: int):
     # 6. Poster
     # 7. Note
     # 8. Country
-    """Retrieve all movies from the database that matches the user_id."""
+    """
     with engine.connect() as conn:
         result = conn.execute(
             text(
@@ -106,7 +95,7 @@ def add_movie(movie: dict, user_id: int) -> bool:
     country = movie["Country"]
     with engine.connect() as conn:
         try:
-            print(BColors.LISTING + f"Inserting movie {title} into the database")
+            print(Bcolors.LISTING + f"Inserting movie {title} into the database")
             params = {
                 "user_id": user_id,
                 "imdbID": imdbID,
@@ -124,13 +113,13 @@ def add_movie(movie: dict, user_id: int) -> bool:
                 params,
             )
             conn.commit()
-            # print(BColors.LISTING + f"Movie '{title}' added successfully." + BColors.ENDC)
+            # print(Bcolors.LISTING + f"Movie '{title}' added successfully." + Bcolors.ENDC)
             return True
         # Catch any exception that can occur results in movie not stored.
         # pylint: disable=broad-exception-caught
         except Exception as e:
             print(
-                BColors.FAIL + f"Error during storage of the movie: {e}" + BColors.ENDC
+                Bcolors.FAIL + f"Error during storage of the movie: {e}" + Bcolors.ENDC
             )
             return False
 
@@ -140,7 +129,7 @@ def delete_movie(movie_id: int, title: str, user_id: int) -> bool:
     with engine.connect() as conn:
         try:
             print(
-                BColors.LISTING
+                Bcolors.LISTING
                 + f"Deleting movie {title} with ID {movie_id} from the database for user_id {user_id}"
             )
             conn.execute(
@@ -149,14 +138,14 @@ def delete_movie(movie_id: int, title: str, user_id: int) -> bool:
             )
             conn.commit()
             print(
-                BColors.LISTING
+                Bcolors.LISTING
                 + f"Movie '{title}' deleted successfully."
-                + BColors.ENDC
+                + Bcolors.ENDC
             )
         # Catch any exception that can occur results in movie not stored.
         # pylint: disable=broad-exception-caught
         except Exception as e:
-            print(BColors.FAIL + f"Error: {e}" + BColors.ENDC)
+            print(Bcolors.FAIL + f"Error: {e}" + Bcolors.ENDC)
             return False
     return True
 
@@ -166,21 +155,21 @@ def update_movie(movie_id: int, new_note: str, title: str) -> bool:
     with engine.connect() as conn:
         try:
             print(
-                BColors.LISTING
+                Bcolors.LISTING
                 + f"Updating movie {title} with ID {movie_id} from the database "
                 + f"with the following note: \n{new_note}"
-                + BColors.ENDC
+                + Bcolors.ENDC
             )
             conn.execute(
                 text("UPDATE movies SET note = :note WHERE id = :id"),
                 {"id": movie_id, "note": new_note},
             )
             conn.commit()
-            # print(BColors.LISTING + f"Movie '{title}' updated successfully." + BColors.ENDC)
+            # print(Bcolors.LISTING + f"Movie '{title}' updated successfully." + Bcolors.ENDC)
         # Catch any exception that can occur results in movie not stored.
         # pylint: disable=broad-exception-caught
         except Exception as e:
-            print(BColors.FAIL + f"Error: {e}" + BColors.ENDC)
+            print(Bcolors.FAIL + f"Error: {e}" + Bcolors.ENDC)
             return False
     return True
 
@@ -232,9 +221,9 @@ def search_movie(title: str, user_id: int, match_type: int = 0) -> dict:
     with engine.connect() as conn:
         try:
             print(
-                BColors.LISTING
+                Bcolors.LISTING
                 + f"Searching for movie {title} into the database"
-                + BColors.ENDC
+                + Bcolors.ENDC
             )
             if match_type == 0:
                 result = conn.execute(text(SEARCH_QUERY_0), params_0)
@@ -250,10 +239,10 @@ def search_movie(title: str, user_id: int, match_type: int = 0) -> dict:
         # pylint: disable=broad-exception-caught
         # Any type of connection failure is caught
         except Exception as e:
-            print(BColors.FAIL + f"Error: {e}" + BColors.ENDC)
+            print(Bcolors.FAIL + f"Error: {e}" + Bcolors.ENDC)
             return {}
         res = result.fetchall()
-        print(f"the search function will return this: {res}")
+        # print(f"the search function will return this: {res}")
     return res
 
 

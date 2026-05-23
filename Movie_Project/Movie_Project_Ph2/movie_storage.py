@@ -4,7 +4,7 @@ import movie_storage_json as msj
 STORAGE = {"SQL" : "SQL",
            "JSON" : "JSON"
            }
-SELECTED_STORAGE = STORAGE["SQL"]
+SELECTED_STORAGE = STORAGE["JSON"]
 
 
 def fetch_all_movies():
@@ -40,13 +40,15 @@ def delete_movie(movie_id: int, title: str, user_id: int) -> bool:
 
 
 def update_movie(movie_id: int, new_note: str, title: str) -> bool:
+    """ Update a movie from the database
+    """
     if SELECTED_STORAGE == STORAGE["JSON"]:
         return msj.update_movie(movie_id, new_note, title)
     else:
         return mss.update_movie(movie_id, new_note, title)
 
 def search_movie(title: str, user_id: int, match_type: int = 0) -> dict:
-    """
+    """ search for a title in the database
     """
     if SELECTED_STORAGE == STORAGE["JSON"]:
         return msj.search_movie(title, user_id, match_type)

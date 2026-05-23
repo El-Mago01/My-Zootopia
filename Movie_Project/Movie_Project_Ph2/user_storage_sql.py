@@ -131,7 +131,8 @@ def update_user_profile(user_id, new_username, new_email_address) -> bool:
             )
             conn.execute(
                 text(
-                    "UPDATE users SET username = :username, email_address = :email_address WHERE user_id = :id"
+                    "UPDATE users SET username = :username, email_address = :email_address "
+                    "WHERE user_id = :id"
                 ),
                 {
                     "id": user_id,

@@ -1,22 +1,6 @@
-from pathlib import Path
 import os
 import json
-
-
-class BColors:
-    """Utility class to represent colors on the terminal."""
-
-    HEADER = "\033[95m"
-    MENU_TEXT = "\033[94m"
-    OKCYAN = "\033[96m"
-    INPUT_TEXT = "\033[92m"
-    WARNING = "\033[93m"
-    BLINKING = "\033[5m"
-    FAIL = "\033[91m"
-    LISTING = "\033[0m"
-    ENDC = "\033[0m"
-    BOLD = "\033[1m"
-    UNDERLINE = "\033[4m"
+from user_interface import Bcolors
 
 
 STORAGE_DIR = "data"
@@ -24,6 +8,19 @@ MOVIE_STORAGE = os.path.join(STORAGE_DIR, "movies.json")
 
 
 def fetch_movie_from_storage() -> list:
+    """Retrieve all movies from the database.
+    Return:
+    # Returned movie: positions per movie:
+    # 0. id
+    # 1. user_id
+    # 2. imdbID
+    # 3. Title
+    # 4. Year
+    # 5. Rating
+    # 6. Poster
+    # 7. Note
+    # 8. Country
+    """
     try:
         with open(MOVIE_STORAGE, "r") as fileobj:
             content = fileobj.read()
@@ -31,33 +28,35 @@ def fetch_movie_from_storage() -> list:
             movies = json.loads(content)
         else:
             movies = []
-    except FileNotFoundError as e:
+    except FileNotFoundError:
         movies = []
     except OSError as e:
-        print(f"{BColors.FAIL}Could not store movie data. Please contact your "
-              f"adminstrator. \nError: {e} {BColors.ENDC}")
+        print(f"{Bcolors.FAIL}Could not store movie data. Please contact your "
+              f"adminstrator. \nError: {e} {Bcolors.ENDC}")
         movies = []
     return movies
 
 
 def store_movies(content: list) -> bool:
-    """Store movie data in the JSON archive."""
+    """Store movie data in the JSON archive.
+    param: the content of all the movies to store
+    """
     content_to_write = json.dumps(content)
     if os.path.exists(MOVIE_STORAGE):
         try:
             with open(MOVIE_STORAGE, "w") as fileobj:
                 fileobj.write(content_to_write)
         except OSError as e:
-            print(f"{BColors.FAIL}Could not store movie data. Please contact your "
-                  f"adminstrator. \nError: {e} {BColors.ENDC}")
+            print(f"{Bcolors.FAIL}Could not store movie data. Please contact your "
+                  f"adminstrator. \nError: {e} {Bcolors.ENDC}")
             return False
     else:
         try:
             with open(MOVIE_STORAGE, "w") as fileobj:
                 fileobj.write(content_to_write)
         except OSError as e:
-            print(f"{BColors.FAIL}Could not store movie data. Please contact your "
-                  f"adminstrator. \nError: {e} {BColors.ENDC}")
+            print(f"{Bcolors.FAIL}Could not store movie data. Please contact your "
+                  f"adminstrator. \nError: {e} {Bcolors.ENDC}")
             print("Here is the movie data that might be lost :")
             for movie in content:
                 print(movie)
@@ -65,6 +64,10 @@ def store_movies(content: list) -> bool:
     return True
 
 def append_movie_to_storage(movie_data: list) -> bool:
+    """Store the new movie data in the content for the JSON archive.
+    param: tthe movie to stor
+    return: Successful or failed storage
+
     # Storage positions:
     # 0. id
     # 1. user_id
@@ -75,7 +78,7 @@ def append_movie_to_storage(movie_data: list) -> bool:
     # 6. Poster
     # 7. Note
     # 8. Country
-
+    """
     current_movies = fetch_movie_from_storage()
     updated_movies = []
     if len(current_movies) == 0: #The first movie in the DB
@@ -86,8 +89,7 @@ def append_movie_to_storage(movie_data: list) -> bool:
         # look for the last stored entry in the DB and order it based on movie_id
         # Create and identifier by finding the last entry and add 1 to it's id
         updated_movies = sorted(current_movies)
-        print(updated_movies)
-        new_movie_id = updated_movies[-1][0] + 1
+        # print(updated_movies)
         movie_data.insert(0, current_movies[-1][0] + 1)
         updated_movies.append(movie_data)
     return store_movies(updated_movies)
@@ -95,7 +97,7 @@ def append_movie_to_storage(movie_data: list) -> bool:
 
 
 def fetch_all_movies():
-    """Retrieve all movies from the JSON archive."""
+    """Retrieve all movies from the JSON archive.
     # Returned movie: positions per movie:
 
     # 0. id
@@ -107,11 +109,14 @@ def fetch_all_movies():
     # 6. Poster
     # 7. Note
     # 8. Country
+    """
+
     available_movies = fetch_movie_from_storage()
     return available_movies
 
 
 def fetch_movies(user_id: int):
+    """ Fetch all movies from a specific user_id
     # Returned movie: positions per movie:
     # 0. id
     # 1. user_id
@@ -122,23 +127,24 @@ def fetch_movies(user_id: int):
     # 6. Poster
     # 7. Note
     # 8. Country
+    """
     movies = []
     available_movies = fetch_movie_from_storage()
     print("Fetching the movies for: ", user_id)
     for movie in available_movies:
-
-        print(movie[1])
         if movie[1] == user_id:
             movies.append(movie)
     return movies
 
 
-
 # pylint: disable=invalid-name
 def add_movie(movie: dict, user_id: int) -> bool:
-    """Add a movie to the database."""
-    print("Movie to add", movie)
-    print("for user", user_id)
+    """Add a movie to the database.
+    param: movie
+    param: user_id
+    Return: Successful or failed storage"""
+    # print("Movie to add", movie)
+    # print("for user", user_id)
     movie_list = [
         user_id,
         movie["imdbID"],
@@ -153,11 +159,19 @@ def add_movie(movie: dict, user_id: int) -> bool:
 
 
 def delete_movie(movie_id: int, title: str, user_id: int) -> bool:
-    """Delete a movie from the database."""
+    """Delete a movie from the database.
+    param: movie_id
+    param: the title
+    param: user_id
+    Return: Successful or failed deletion"""
+
     current_movies = fetch_movie_from_storage()
     if len(current_movies) == 0:  # If there is no movie yet, nothing is deleted.
         return False
-
+    print(
+        Bcolors.LISTING
+        + f"Deleting movie {title} with ID {movie_id} from the database for user_id {user_id}"
+    )
     # pop the film to be deleted
     movie_deleted = False
     for movie in current_movies:
@@ -167,18 +181,22 @@ def delete_movie(movie_id: int, title: str, user_id: int) -> bool:
             break
     if movie_deleted and store_movies(current_movies):
         print(
-            BColors.LISTING
+            Bcolors.LISTING
             + f"Movie '{title}' deleted successfully."
-            + BColors.ENDC
+            + Bcolors.ENDC
         )
         return True
     return False
 
 
 def update_movie(movie_id: int, new_note: str, title: str) -> bool:
-    """Update a movie's rating in the database."""
+    """Update a movie's note in the database.
+    param: movie_id
+    param: the title
+    param: user_id
+    Return: Successful or failed update
+    """
     current_movies = fetch_movie_from_storage()
-    updated_movies = []
     if len(current_movies) == 0:  # If there is no movie yet, nothing is updated.
         return False
 
@@ -192,16 +210,16 @@ def update_movie(movie_id: int, new_note: str, title: str) -> bool:
             break
     if not movie_updated:
         print(
-            BColors.WARNING
+            Bcolors.WARNING
             + f"Movie '{title}' not found. Note update failed"
-            + BColors.ENDC
+            + Bcolors.ENDC
         )
 
     if not store_movies(current_movies):
         print(
-            BColors.WARNING
+            Bcolors.WARNING
             + f"Movies '{title}' could not be stored"
-            + BColors.ENDC
+            + Bcolors.ENDC
         )
         return False
     return True
@@ -219,7 +237,7 @@ def search_movie(title: str, user_id: int, match_type: int = 0) -> list:
     match_type 3 => fuzzy matching# pylint: disable=invalid-name
     """
     all_user_movies = fetch_movies(user_id)
-    print(all_user_movies)
+    # print(all_user_movies)
     found_movies = []
     for movie in all_user_movies:
         movie_tuple = (
@@ -245,7 +263,7 @@ def search_movie(title: str, user_id: int, match_type: int = 0) -> list:
         if match_type == 3:
             if title.lower() in movie[3].lower().strip():
                 found_movies.append(movie_tuple)
-    print(f"the search function will return this: {found_movies}")
+    # print(f"the search function will return this: {found_movies}")
 
     return found_movies
 
@@ -261,8 +279,8 @@ def main():
     # found_movies=search_movie("The hulk",1)
     # print(f" This/these movie(s) were found{found_movies}")
 
-    all_movies = fetch_all_movies()
-    print(all_movies)
+    # all_movies = fetch_all_movies()
+    # print(all_movies)
 
     # found_movies = search_movie("    The    hulk   ", 1, 2)
     # print(f" This/these movie(s) were found{found_movies}")

@@ -64,12 +64,14 @@ def generate_grid(movies: list):  # A list of tuples with the movies
             <li>
             <div class="movie">
                 <a href="https://www.imdb.com/title/{movie[2]}/" target="_blank">
-                <img class="movie-poster" title="{movie[7]}" src="{movie[6]}" alt="{movie[7]} poster">
+                <img class="movie-poster" title="{movie[7]}" src="{movie[6]}"
+                alt="{movie[7]} poster">
                 </a>
                 """
         for country_code in country_codes:
             grid += f"""
-                <img class="flag" src="https://flagsapi.com/{country_code.upper()}/shiny/64.png" alt="{country_code.upper()} flag">
+                <img class="flag" src="https://flagsapi.com/{country_code.upper()}/shiny/64.png"
+                alt="{country_code.upper()} flag">
                 """
         grid += f"""
                 <div class="movie-title">{movie[3]}</div>
@@ -94,8 +96,8 @@ def generate_website(movies, username) -> str:
         content = content.replace(_title_, page_title)
         content = content.replace(
             _movie_grid_, generate_grid(movies)
-        )  # we take the country of the first movie, but it should be the same for all movies of the user
+        )  # we take the country of the first movie, but it should be the
+           # same for all movies of the user
         write_to_new_html_file(movies_web_file_name, content)
         return movies_web_file_name
-    else:
-        return ""
+    return ""

@@ -1,6 +1,8 @@
 import os
 import requests
 from dotenv import load_dotenv
+from user_interface import Bcolors
+
 
 # load all environment variables
 load_dotenv()
@@ -10,23 +12,6 @@ BASE_URL = "https://www.omdbapi.com/"
 api_key = os.getenv("apikey")
 
 CURRENT_MOVIE = {}
-
-
-class BColors:
-    """Utility class to represent colors on the terminal."""
-
-    HEADER = "\033[95m"
-    MENU_TEXT = "\033[94m"
-    OKCYAN = "\033[96m"
-    INPUT_TEXT = "\033[92m"
-    WARNING = "\033[93m"
-    BLINKING = "\033[5m"
-    FAIL = "\033[91m"
-    LISTING = "\033[0m"
-    ENDC = "\033[0m"
-    BOLD = "\033[1m"
-    UNDERLINE = "\033[4m"
-
 
 def get_movie_data(imdbID: str = "", title: str = "") -> dict:
     """
@@ -42,11 +27,11 @@ def get_movie_data(imdbID: str = "", title: str = "") -> dict:
         try:
             if imdbID != "":  # the imdbID is the main search key
                 search_term = f"?apikey={api_key}&i={imdbID}"
-                # print(BColors.LISTING + f"imdbID={imdbID} provided. "
+                # print(Bcolors.LISTING + f"imdbID={imdbID} provided. "
                 #   " This is the search term:", search_term)
             elif title != "":  # the title is the main search key
                 search_term = f"?apikey={api_key}&s={title}"
-                # print(BColors.LISTING + "Title provided. This is the "
+                # print(Bcolors.LISTING + "Title provided. This is the "
                 # "search term:", search_term)
             else:
                 search_term = f"?apikey={api_key}"
@@ -55,11 +40,11 @@ def get_movie_data(imdbID: str = "", title: str = "") -> dict:
         # Any type of connection failure is caught
         except Exception as e:
             print(
-                BColors.FAIL
+                Bcolors.FAIL
                 + "Unexpected path taken. Either imdbID or title must be provided"
-                + BColors.ENDC
+                + Bcolors.ENDC
             )
-            print(BColors.FAIL + f"Error: {e}" + BColors.ENDC)
+            print(Bcolors.FAIL + f"Error: {e}" + Bcolors.ENDC)
             search_term = f"?apikey={api_key}"
             return search_term
 
@@ -77,13 +62,13 @@ def get_movie_data(imdbID: str = "", title: str = "") -> dict:
         # pylint: disable=broad-exception-caught
         # Any type of connection failure is caucht
     except Exception as e:
-        print(BColors.FAIL + "Could not access API: GET Request failed:" + BColors.ENDC)
-        print(BColors.FAIL + "Please contact your system administrator" + BColors.ENDC)
-        print(BColors.FAIL + f"Error: {e}" + BColors.ENDC)
+        print(Bcolors.FAIL + "Could not access API: GET Request failed:" + Bcolors.ENDC)
+        print(Bcolors.FAIL + "Please contact your system administrator" + Bcolors.ENDC)
+        print(Bcolors.FAIL + f"Error: {e}" + Bcolors.ENDC)
         movie_details = {}
         return movie_details
     if movie_details["Response"] == "False":  # the json contains an invalid response
-        print(BColors.WARNING + "Movie not found!." + BColors.ENDC)
+        print(Bcolors.WARNING + "Movie not found!." + Bcolors.ENDC)
         movie_details = {}
     return movie_details
 
@@ -122,12 +107,12 @@ def fetch_specific_movie_detail_item(item: str, imdbID: str) -> str:
     movie_details = {}
     try:
         movie_details = fetch_specific_movie_details(imdbID)
-        # print(BColors.LISTING + "returning for item:" + BColors.ENDC, movie_details[item])
+        # print(Bcolors.LISTING + "returning for item:" + Bcolors.ENDC, movie_details[item])
         if movie_details[item] is not None:
             return movie_details[item]
         return ""  # in case no movie_details for the specific imdbID where found
     except KeyError:
-        print(BColors.FAIL + "Invalid item received: " + BColors.ENDC, movie_details)
+        print(Bcolors.FAIL + "Invalid item received: " + Bcolors.ENDC, movie_details)
         return ""
 
 
