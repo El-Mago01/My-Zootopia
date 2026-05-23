@@ -67,7 +67,11 @@ def get_movie_data(imdbID: str = "", title: str = "") -> dict:
         print(Bcolors.FAIL + f"Error: {e}" + Bcolors.ENDC)
         movie_details = {}
         return movie_details
-    if movie_details["Response"] == "False":  # the json contains an invalid response
+    try:
+        if movie_details["Response"] == "False":  # the json contains an invalid response
+           print(Bcolors.WARNING + "Movie not found!." + Bcolors.ENDC)
+           movie_details = {}
+    except KeyError:
         print(Bcolors.WARNING + "Movie not found!." + Bcolors.ENDC)
         movie_details = {}
     return movie_details

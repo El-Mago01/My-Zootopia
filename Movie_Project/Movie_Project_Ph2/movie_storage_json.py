@@ -130,7 +130,7 @@ def fetch_movies(user_id: int):
     """
     movies = []
     available_movies = fetch_movie_from_storage()
-    print("Fetching the movies for: ", user_id)
+    # print("Fetching the movies for: ", user_id)
     for movie in available_movies:
         if movie[1] == user_id:
             movies.append(movie)

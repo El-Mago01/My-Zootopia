@@ -5,6 +5,7 @@ This module handles all the overall statistics related services
 import statistics
 import sys
 import matplotlib.pyplot as plt
+import user_handling as uh
 from user_interface import Bcolors
 import movie_storage as ms
 
@@ -19,7 +20,7 @@ def command_create_rating_histogram():
     import matplotlib.pyplot as plt
     """
     rating_list = []
-    movies = ms.fetch_all_movies()
+    movies = ms.fetch_movies(uh.get_current_userid())
     for movie in movies:
         rating_list.append(movie[4])
     plt.hist(rating_list)
@@ -70,7 +71,7 @@ def command_show_stats():
     # =======================================================================
 
     rating_list = []
-    movies = ms.fetch_all_movies()
+    movies = ms.fetch_movies(uh.get_current_userid())
     for movie in movies:
         rating_list.append(movie[5])
     # print(Bcolors.LISTING + f"Rating_list: {rating_list}" + Bcolors.ENDC)
